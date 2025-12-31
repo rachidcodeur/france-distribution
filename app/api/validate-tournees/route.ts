@@ -155,29 +155,31 @@ export async function GET(request: Request) {
       const secteursStatus: Array<{ code: string; count: number; status: string }> = []
       let tourneeStatus: 'confirmed' | 'cancelled' | 'bouclee' = 'cancelled'
       let hasConfirmedSecteur = false
-      let allSecteursBoucles = true
+      let hasBoucleeSecteur = false
 
       secteursCounts.forEach((count, irisCode) => {
         let secteurStatus: string
         
         if (count >= 5) {
           secteurStatus = 'bouclee'
-          tourneeStatus = 'bouclee'
+          hasBoucleeSecteur = true
         } else if (count >= 3) {
           secteurStatus = 'confirmed'
           hasConfirmedSecteur = true
-          allSecteursBoucles = false
         } else {
           secteurStatus = 'insufficient'
-          allSecteursBoucles = false
         }
 
         secteursStatus.push({ code: irisCode, count, status: secteurStatus })
       })
 
-      // Si au moins un secteur est confirmé et qu'aucun n'est bouclé, la tournée est confirmée
-      if (hasConfirmedSecteur && tourneeStatus !== 'bouclee') {
+      // Déterminer le statut final de la tournée
+      if (hasBoucleeSecteur) {
+        tourneeStatus = 'bouclee'
+      } else if (hasConfirmedSecteur) {
         tourneeStatus = 'confirmed'
+      } else {
+        tourneeStatus = 'cancelled'
       }
 
       // Mettre à jour le statut de toutes les participations de cette tournée
