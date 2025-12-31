@@ -95,13 +95,13 @@ export async function GET(request: Request) {
     }> = []
 
     // Pour chaque tournée unique
-    for (const [key, tourneeParticipations] of tourneesMap.entries()) {
+    tourneesMap.forEach((tourneeParticipations, key) => {
       const [villeName, dateDebutStr] = key.split('|')
       const dateDebut = parseFrenchDate(dateDebutStr)
       
       if (!dateDebut) {
         console.warn(`Date invalide pour la tournée: ${dateDebutStr}`)
-        continue
+        return
       }
 
       // Calculer la date limite (15 jours avant)
@@ -114,7 +114,7 @@ export async function GET(request: Request) {
       
       // Valider uniquement si on est entre 0 et 1 jour après la date limite
       if (diffDays < 0 || diffDays > 1) {
-        continue // Pas encore le moment de valider cette tournée
+        return // Pas encore le moment de valider cette tournée
       }
 
       const participationIds = tourneeParticipations.map((p: Participation) => p.id)
@@ -127,7 +127,7 @@ export async function GET(request: Request) {
 
       if (selectionsError) {
         console.error(`Erreur lors de la récupération des sélections pour ${villeName}:`, selectionsError)
-        continue
+        return
       }
 
       // Compter les participants par secteur IRIS
@@ -155,7 +155,7 @@ export async function GET(request: Request) {
       let hasConfirmedSecteur = false
       let allSecteursBoucles = true
 
-      for (const [irisCode, count] of secteursCounts.entries()) {
+      secteursCounts.forEach((count, irisCode) => {
         let secteurStatus: string
         
         if (count >= 5) {
@@ -171,7 +171,7 @@ export async function GET(request: Request) {
         }
 
         secteursStatus.push({ code: irisCode, count, status: secteurStatus })
-      }
+      })
 
       // Si au moins un secteur est confirmé et qu'aucun n'est bouclé, la tournée est confirmée
       if (hasConfirmedSecteur && tourneeStatus !== 'bouclee') {
@@ -186,7 +186,7 @@ export async function GET(request: Request) {
 
       if (updateError) {
         console.error(`Erreur lors de la mise à jour du statut pour ${villeName}:`, updateError)
-        continue
+        return
       }
 
       validatedCount++
