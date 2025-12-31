@@ -95,13 +95,15 @@ export async function GET(request: Request) {
     }> = []
 
     // Pour chaque tournée unique
-    tourneesMap.forEach((tourneeParticipations, key) => {
+    const tourneesEntries = Array.from(tourneesMap.entries())
+    for (let i = 0; i < tourneesEntries.length; i++) {
+      const [key, tourneeParticipations] = tourneesEntries[i]
       const [villeName, dateDebutStr] = key.split('|')
       const dateDebut = parseFrenchDate(dateDebutStr)
       
       if (!dateDebut) {
         console.warn(`Date invalide pour la tournée: ${dateDebutStr}`)
-        return
+        continue
       }
 
       // Calculer la date limite (15 jours avant)
@@ -114,7 +116,7 @@ export async function GET(request: Request) {
       
       // Valider uniquement si on est entre 0 et 1 jour après la date limite
       if (diffDays < 0 || diffDays > 1) {
-        return // Pas encore le moment de valider cette tournée
+        continue // Pas encore le moment de valider cette tournée
       }
 
       const participationIds = tourneeParticipations.map((p: Participation) => p.id)
@@ -127,7 +129,7 @@ export async function GET(request: Request) {
 
       if (selectionsError) {
         console.error(`Erreur lors de la récupération des sélections pour ${villeName}:`, selectionsError)
-        return
+        continue
       }
 
       // Compter les participants par secteur IRIS
@@ -186,7 +188,7 @@ export async function GET(request: Request) {
 
       if (updateError) {
         console.error(`Erreur lors de la mise à jour du statut pour ${villeName}:`, updateError)
-        return
+        continue
       }
 
       validatedCount++
