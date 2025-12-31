@@ -206,6 +206,9 @@ export default function AdminPage() {
         return
       }
 
+      // Typage explicite pour TypeScript
+      const typedParticipationsData = participationsData as Participation[]
+
       // Récupérer les emails des utilisateurs via l'API admin
       const userEmailMap = new Map<string, string>()
       try {
@@ -221,14 +224,14 @@ export default function AdminPage() {
       }
       
       // Par défaut, mettre 'Email non disponible' pour les utilisateurs non trouvés
-      participationsData.forEach(p => {
+      typedParticipationsData.forEach(p => {
         if (!userEmailMap.has(p.user_id)) {
           userEmailMap.set(p.user_id, 'Email non disponible')
         }
       })
 
       // Récupérer les sélections d'IRIS
-      const participationIds = participationsData.map(p => p.id)
+      const participationIds = typedParticipationsData.map(p => p.id)
       const { data: irisData, error: irisError } = await supabase
         .from('france_distri_iris_selections')
         .select('*')
@@ -272,7 +275,7 @@ export default function AdminPage() {
       // Grouper les participations par tournée
       const tourneesMap = new Map<string, Participation[]>()
       
-      participationsData.forEach(participation => {
+      typedParticipationsData.forEach(participation => {
         const key = `${participation.ville_name}|${participation.tournee_date_debut}`
         if (!tourneesMap.has(key)) {
           tourneesMap.set(key, [])
