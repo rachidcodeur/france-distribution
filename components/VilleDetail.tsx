@@ -264,6 +264,7 @@ export default function VilleDetail({ villeName }: { villeName: string }) {
 
         // Pour chaque tournée, compter les participants réels
         for (const tournee of filteredTournees) {
+          if (!ville) continue
           const tourneeKey = `${ville.name}|${tournee.dateDebut}`
           
           // Récupérer toutes les participations pour cette tournée (non annulées)

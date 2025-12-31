@@ -303,7 +303,7 @@ export default function SecteursPage({
         const villeName = ville.name
 
         // Fonction pour détecter et extraire le code INSEE des arrondissements de Paris
-        function getParisArrondissementCodeInsee(name: string): string | null {
+        const getParisArrondissementCodeInsee = (name: string): string | null => {
           const parisArrondissementMatch = name.match(/Paris\s+(\d+)(?:er|e|ème)?\s+Arrondissement/i)
           if (parisArrondissementMatch) {
             const arrondissementNum = parseInt(parisArrondissementMatch[1], 10)

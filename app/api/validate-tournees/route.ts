@@ -183,9 +183,13 @@ export async function GET(request: Request) {
       }
 
       // Mettre à jour le statut de toutes les participations de cette tournée
-      const { error: updateError } = await supabase
+      const updatePayload: { status: 'confirmed' | 'cancelled' | 'bouclee' } = { 
+        status: tourneeStatus 
+      }
+      // @ts-ignore - TypeScript ne peut pas inférer correctement le type de la table Supabase
+      const { error: updateError } = await (supabase as any)
         .from('france_distri_participations')
-        .update({ status: tourneeStatus as 'confirmed' | 'cancelled' | 'bouclee' })
+        .update(updatePayload)
         .in('id', participationIds)
 
       if (updateError) {

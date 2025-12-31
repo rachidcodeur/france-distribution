@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 
@@ -31,11 +31,15 @@ interface StoredSelection {
   selectedFlyerFormat?: 'A5' | 'A6' | null
 }
 
+interface Participation {
+  id: string
+  [key: string]: any
+}
+
 /**
- * Page de callback pour gérer le retour après confirmation d'email
- * Cette page restaure les données depuis localStorage et redirige vers la page de login
+ * Composant interne qui utilise useSearchParams
  */
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -171,13 +175,15 @@ export default function AuthCallbackPage() {
                   // Rediriger vers login pour réessayer
                   router.push('/login')
                   return
-                } else {
-                  console.log('✅ Participation sauvegardée:', participation.id)
+                } else if (participation) {
+                  const typedParticipation = participation as Participation
+                  console.log('✅ Participation sauvegardée:', typedParticipation.id)
                   
                   // Sauvegarder les sélections d'IRIS
                   if (storedData.selectedIris && storedData.selectedIris.length > 0) {
+                    const typedParticipation = participation as Participation
                     const irisSelections = storedData.selectedIris.map((iris) => ({
-                      participation_id: participation.id,
+                      participation_id: typedParticipation.id,
                       iris_code: iris.code,
                       iris_name: iris.name,
                       logements: iris.logements ? Math.round(iris.logements) : null
@@ -185,7 +191,8 @@ export default function AuthCallbackPage() {
                     
                     console.log('💾 Sauvegarde de', irisSelections.length, 'sélections IRIS...')
                     
-                    const { error: irisError } = await supabase
+                    // @ts-ignore - TypeScript ne peut pas inférer correctement le type de la table Supabase
+                    const { error: irisError } = await (supabase as any)
                       .from('france_distri_iris_selections')
                       .insert(irisSelections)
                     
@@ -248,6 +255,27 @@ export default function AuthCallbackPage() {
         </div>
       </div>
     </section>
+  )
+}
+
+/**
+ * Page de callback pour gérer le retour après confirmation d'email
+ * Cette page restaure les données depuis localStorage et redirige vers la page de login
+ */
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <section className="tournees-section" style={{ marginTop: '88px', padding: 'var(--spacing-4xl) 0', background: 'var(--gradient-dark)' }}>
+        <div className="container">
+          <div style={{ textAlign: 'center', padding: 'var(--spacing-4xl) 0' }}>
+            <div className="loading-spinner" style={{ margin: '0 auto 20px' }}></div>
+            <p style={{ color: 'var(--text-secondary)' }}>Chargement...</p>
+          </div>
+        </div>
+      </section>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
   )
 }
 

@@ -89,14 +89,15 @@ export default function ParametresPage() {
 
       // Si le profil existe, utiliser ses données
       if (profileData && !profileError) {
+        const typedProfileData = profileData as { nom?: string; prenom?: string; entreprise?: string; telephone?: string; adresse_rue?: string; adresse_code_postal?: string; adresse_ville?: string; [key: string]: any }
         initialData = {
-          nom: profileData.nom || '',
-          prenom: profileData.prenom || '',
-          entreprise: profileData.entreprise || '',
-          telephone: profileData.telephone || '',
-          adresse_rue: profileData.adresse_rue || '',
-          adresse_code_postal: profileData.adresse_code_postal || '',
-          adresse_ville: profileData.adresse_ville || ''
+          nom: typedProfileData.nom || '',
+          prenom: typedProfileData.prenom || '',
+          entreprise: typedProfileData.entreprise || '',
+          telephone: typedProfileData.telephone || '',
+          adresse_rue: typedProfileData.adresse_rue || '',
+          adresse_code_postal: typedProfileData.adresse_code_postal || '',
+          adresse_ville: typedProfileData.adresse_ville || ''
         }
       }
 
@@ -113,20 +114,21 @@ export default function ParametresPage() {
           const latestParticipation = participations[0]
           
           // Préremplir uniquement les champs vides avec les données des participations
-          if (!initialData.entreprise && latestParticipation.flyer_entreprise) {
-            initialData.entreprise = latestParticipation.flyer_entreprise
+          const typedLatestParticipation = latestParticipation as { flyer_entreprise?: string; flyer_telephone?: string; flyer_address_rue?: string; flyer_address_code_postal?: string; flyer_address_ville?: string; [key: string]: any }
+          if (!initialData.entreprise && typedLatestParticipation.flyer_entreprise) {
+            initialData.entreprise = typedLatestParticipation.flyer_entreprise
           }
-          if (!initialData.telephone && latestParticipation.flyer_telephone) {
-            initialData.telephone = latestParticipation.flyer_telephone
+          if (!initialData.telephone && typedLatestParticipation.flyer_telephone) {
+            initialData.telephone = typedLatestParticipation.flyer_telephone
           }
-          if (!initialData.adresse_rue && latestParticipation.flyer_address_rue) {
-            initialData.adresse_rue = latestParticipation.flyer_address_rue
+          if (!initialData.adresse_rue && typedLatestParticipation.flyer_address_rue) {
+            initialData.adresse_rue = typedLatestParticipation.flyer_address_rue
           }
-          if (!initialData.adresse_code_postal && latestParticipation.flyer_address_code_postal) {
-            initialData.adresse_code_postal = latestParticipation.flyer_address_code_postal
+          if (!initialData.adresse_code_postal && typedLatestParticipation.flyer_address_code_postal) {
+            initialData.adresse_code_postal = typedLatestParticipation.flyer_address_code_postal
           }
-          if (!initialData.adresse_ville && latestParticipation.flyer_address_ville) {
-            initialData.adresse_ville = latestParticipation.flyer_address_ville
+          if (!initialData.adresse_ville && typedLatestParticipation.flyer_address_ville) {
+            initialData.adresse_ville = typedLatestParticipation.flyer_address_ville
           }
         }
       }
@@ -175,7 +177,8 @@ export default function ParametresPage() {
 
       if (existingProfile && !checkError) {
         // Mise à jour d'un profil existant
-        const { error: updateError } = await supabase
+        // @ts-ignore - TypeScript ne peut pas inférer correctement le type de la table Supabase
+        const { error: updateError } = await (supabase as any)
           .from('france_distri_user_profiles')
           .update(profileData)
           .eq('user_id', user.id)
@@ -183,7 +186,8 @@ export default function ParametresPage() {
         error = updateError
       } else {
         // Création d'un nouveau profil
-        const { error: insertError } = await supabase
+        // @ts-ignore - TypeScript ne peut pas inférer correctement le type de la table Supabase
+        const { error: insertError } = await (supabase as any)
           .from('france_distri_user_profiles')
           .insert(profileData)
 

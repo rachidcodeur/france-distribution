@@ -21,6 +21,8 @@ interface IrisMapProps {
   selectedIris: string[]
   onIrisClick: (code: string, name: string) => void
   irisCounts?: Map<string, number> // Nombre de sélections par IRIS
+  irisParticipants?: Map<string, { entreprise: string; titre: string; }[]> // Participants par IRIS
+  onIrisBubbleClick?: (irisCode: string) => void // Callback pour clic sur bulle IRIS
   communeLogements?: number // Nombre total de logements de la commune (pour communes non irisées)
 }
 

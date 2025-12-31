@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
@@ -12,6 +12,7 @@ import Toast from '@/components/Toast'
 
 interface IrisSelection {
   id: string
+  participation_id: string
   iris_code: string
   iris_name: string
   logements: number | null
@@ -49,7 +50,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   bouclee: { label: 'Bouclée', color: '#2196f3' }
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [user, setUser] = useState<User | null>(null)
@@ -132,8 +133,30 @@ export default function DashboardPage() {
         return
       }
 
+      // Typage explicite des participations
+      const typedParticipationsData: Participation[] = (participationsData || []).map((p: any): Participation => ({
+        id: String(p.id),
+        ville_name: String(p.ville_name),
+        tournee_date_debut: String(p.tournee_date_debut),
+        tournee_date_fin: String(p.tournee_date_fin),
+        tournee_index: Number(p.tournee_index),
+        total_logements: Number(p.total_logements),
+        cout_distribution: Number(p.cout_distribution),
+        status: (String(p.status) as 'pending' | 'confirmed' | 'cancelled' | 'bouclee'),
+        has_flyer: p.has_flyer !== undefined ? Boolean(p.has_flyer) : false,
+        needs_flyer_creation: p.needs_flyer_creation !== undefined ? Boolean(p.needs_flyer_creation) : false,
+        flyer_title: p.flyer_title ? String(p.flyer_title) : null,
+        flyer_entreprise: p.flyer_entreprise ? String(p.flyer_entreprise) : null,
+        flyer_address_rue: p.flyer_address?.rue ? String(p.flyer_address.rue) : null,
+        flyer_address_code_postal: p.flyer_address?.codePostal ? String(p.flyer_address.codePostal) : null,
+        flyer_address_ville: p.flyer_address?.ville ? String(p.flyer_address.ville) : null,
+        flyer_format: p.selected_flyer_format ? String(p.selected_flyer_format) : null,
+        created_at: p.created_at ? String(p.created_at) : new Date().toISOString(),
+        updated_at: p.updated_at ? String(p.updated_at) : new Date().toISOString()
+      }))
+
       // Récupérer les sélections d'IRIS pour chaque participation
-      const participationIds = participationsData.map(p => p.id)
+      const participationIds = typedParticipationsData.map(p => p.id)
       const { data: irisData, error: irisError } = await supabase
         .from('france_distri_iris_selections')
         .select('*')
@@ -144,6 +167,15 @@ export default function DashboardPage() {
         console.error('Erreur lors de la récupération des IRIS:', irisError)
         // Continuer même si on n'a pas les IRIS
       }
+
+      // Typage explicite des sélections IRIS
+      const typedIrisData: IrisSelection[] = (irisData || []).map((iris: any): IrisSelection => ({
+        id: String(iris.id),
+        participation_id: String(iris.participation_id),
+        iris_code: String(iris.iris_code),
+        iris_name: iris.iris_name ? String(iris.iris_name) : '',
+        logements: iris.logements ? Number(iris.logements) : null
+      }))
 
       // Fonction pour parser une date française (format: "DD mois YYYY")
       const parseFrenchDate = (dateStr: string): Date | null => {
@@ -182,15 +214,15 @@ export default function DashboardPage() {
       }
 
       // Compter les participants par IRIS pour chaque tournée
-      const participationsWithIris = participationsData.map(participation => {
-        const participationIris = irisData?.filter(iris => iris.participation_id === participation.id) || []
+      const participationsWithIris = typedParticipationsData.map(participation => {
+        const participationIris = typedIrisData.filter(iris => iris.participation_id === participation.id)
         
         // Créer une map pour compter les participants par IRIS pour cette tournée
         const irisCounts = new Map<string, number>()
         const irisParticipations = new Map<string, Set<string>>()
         
         // Récupérer toutes les participations pour cette tournée
-        const tourneeParticipations = participationsData.filter(p => 
+        const tourneeParticipations = typedParticipationsData.filter(p => 
           p.ville_name === participation.ville_name && 
           p.tournee_date_debut === participation.tournee_date_debut &&
           p.status !== 'cancelled'
@@ -297,7 +329,8 @@ export default function DashboardPage() {
         // Ignorer si updated_at cause un problème
       }
 
-      const { data: updatedData, error: updateError } = await supabase
+      // @ts-ignore - TypeScript ne peut pas inférer correctement le type de la table Supabase
+      const { data: updatedData, error: updateError } = await (supabase as any)
         .from('france_distri_participations')
         .update(updatePayload)
         .eq('id', participationId)
@@ -331,7 +364,8 @@ export default function DashboardPage() {
           throw new Error('Participation introuvable.')
         }
         
-        if (checkData.user_id !== user.id) {
+        const typedCheckData = checkData as { user_id: string; [key: string]: any }
+        if (typedCheckData.user_id !== user.id) {
           throw new Error('Vous ne pouvez annuler que vos propres participations.')
         }
         
@@ -1046,6 +1080,20 @@ export default function DashboardPage() {
         }
       `}</style>
     </main>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <main style={{ minHeight: '100vh', background: 'var(--gradient-dark)', paddingTop: '88px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 88px)' }}>
+          <div className="loading-spinner"></div>
+        </div>
+      </main>
+    }>
+      <DashboardContent />
+    </Suspense>
   )
 }
 

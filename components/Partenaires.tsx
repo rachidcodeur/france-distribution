@@ -440,8 +440,18 @@ export default function Partenaires() {
           {/* Flèches de navigation */}
           <button
             onClick={() => setCurrentIndex((prev) => (prev - 1 + partenaires.length) % partenaires.length)}
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
+            onMouseEnter={(e) => {
+              setIsPaused(true)
+              e.currentTarget.style.background = 'var(--orange-primary)'
+              e.currentTarget.style.borderColor = 'var(--orange-primary)'
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'
+            }}
+            onMouseLeave={(e) => {
+              setIsPaused(false)
+              e.currentTarget.style.background = 'var(--bg-glass)'
+              e.currentTarget.style.borderColor = 'var(--border-subtle)'
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1)'
+            }}
             style={{
               position: 'absolute',
               left: '0',
@@ -462,16 +472,6 @@ export default function Partenaires() {
               zIndex: 10,
               boxShadow: 'var(--shadow-card)'
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--orange-primary)'
-              e.currentTarget.style.borderColor = 'var(--orange-primary)'
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--bg-glass)'
-              e.currentTarget.style.borderColor = 'var(--border-subtle)'
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1)'
-            }}
             aria-label="Partenaire précédent"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -481,8 +481,18 @@ export default function Partenaires() {
 
           <button
             onClick={() => setCurrentIndex((prev) => (prev + 1) % partenaires.length)}
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
+            onMouseEnter={(e) => {
+              setIsPaused(true)
+              e.currentTarget.style.background = 'var(--orange-primary)'
+              e.currentTarget.style.borderColor = 'var(--orange-primary)'
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'
+            }}
+            onMouseLeave={(e) => {
+              setIsPaused(false)
+              e.currentTarget.style.background = 'var(--bg-glass)'
+              e.currentTarget.style.borderColor = 'var(--border-subtle)'
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1)'
+            }}
             style={{
               position: 'absolute',
               right: '0',
@@ -502,16 +512,6 @@ export default function Partenaires() {
               transition: 'all 0.3s ease',
               zIndex: 10,
               boxShadow: 'var(--shadow-card)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--orange-primary)'
-              e.currentTarget.style.borderColor = 'var(--orange-primary)'
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--bg-glass)'
-              e.currentTarget.style.borderColor = 'var(--border-subtle)'
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1)'
             }}
             aria-label="Partenaire suivant"
           >

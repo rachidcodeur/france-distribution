@@ -165,17 +165,19 @@ export default function LoginPage() {
         throw participationError
       }
 
-      console.log('✅ Participation créée:', participation.id)
+      const typedParticipation = participation as { id: string; [key: string]: any }
+      console.log('✅ Participation créée:', typedParticipation.id)
 
       // Créer les sélections d'IRIS
       const irisSelections = storedData.selectedIris.map(iris => ({
-        participation_id: participation.id,
+        participation_id: typedParticipation.id,
         iris_code: iris.code,
         iris_name: iris.name,
         logements: iris.logements ? Math.round(iris.logements) : null
       }))
 
-      const { error: irisError } = await supabase
+      // @ts-ignore - TypeScript ne peut pas inférer correctement le type de la table Supabase
+      const { error: irisError } = await (supabase as any)
         .from('france_distri_iris_selections')
         .insert(irisSelections)
 

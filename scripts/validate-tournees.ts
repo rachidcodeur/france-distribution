@@ -80,7 +80,9 @@ async function validateTournees() {
     let validatedCount = 0
 
     // Pour chaque tournée unique
-    for (const [key, tourneeParticipations] of tourneesMap.entries()) {
+    const tourneesEntries = Array.from(tourneesMap.entries())
+    for (let i = 0; i < tourneesEntries.length; i++) {
+      const [key, tourneeParticipations] = tourneesEntries[i]
       const [villeName, dateDebutStr] = key.split('|')
       const dateDebut = parseFrenchDate(dateDebutStr)
       
@@ -146,7 +148,9 @@ async function validateTournees() {
       let allSecteursBoucles = true
 
       console.log(`   Secteurs analysés:`)
-      for (const [irisCode, count] of secteursCounts.entries()) {
+      const secteursEntries = Array.from(secteursCounts.entries())
+      for (let i = 0; i < secteursEntries.length; i++) {
+        const [irisCode, count] = secteursEntries[i]
         if (count >= 5) {
           console.log(`   - ${irisCode}: ${count} participants → BOUCLÉ`)
           tourneeStatus = 'bouclee'
