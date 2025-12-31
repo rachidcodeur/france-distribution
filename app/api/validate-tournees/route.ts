@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 
+// Interface pour les participations
+interface Participation {
+  id: string
+  ville_name: string
+  tournee_date_debut: string
+  status: string
+}
+
 // Fonction pour parser une date française (ex: "15 janvier 2024")
 function parseFrenchDate(dateStr: string): Date | null {
   const moisMap: Record<string, number> = {
@@ -60,9 +68,17 @@ export async function GET(request: Request) {
       })
     }
 
+    // Typage explicite des participations
+    const typedParticipations: Participation[] = (participations || []).map((p: any): Participation => ({
+      id: String(p.id),
+      ville_name: String(p.ville_name),
+      tournee_date_debut: String(p.tournee_date_debut),
+      status: String(p.status)
+    }))
+
     // Grouper les participations par ville et date de début
-    const tourneesMap = new Map<string, typeof participations>()
-    participations.forEach((p: any) => {
+    const tourneesMap = new Map<string, Participation[]>()
+    typedParticipations.forEach((p) => {
       const key = `${p.ville_name}|${p.tournee_date_debut}`
       if (!tourneesMap.has(key)) {
         tourneesMap.set(key, [])
@@ -101,7 +117,7 @@ export async function GET(request: Request) {
         continue // Pas encore le moment de valider cette tournée
       }
 
-      const participationIds = tourneeParticipations.map(p => p.id)
+      const participationIds = tourneeParticipations.map((p: Participation) => p.id)
 
       // Récupérer toutes les sélections d'IRIS pour ces participations
       const { data: selections, error: selectionsError } = await supabase
@@ -165,7 +181,7 @@ export async function GET(request: Request) {
       // Mettre à jour le statut de toutes les participations de cette tournée
       const { error: updateError } = await supabase
         .from('france_distri_participations')
-        .update({ status: tourneeStatus })
+        .update({ status: tourneeStatus as 'confirmed' | 'cancelled' | 'bouclee' })
         .in('id', participationIds)
 
       if (updateError) {
