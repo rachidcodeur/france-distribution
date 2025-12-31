@@ -207,7 +207,29 @@ export default function AdminPage() {
       }
 
       // Typage explicite pour TypeScript
-      const typedParticipationsData = participationsData as Participation[]
+      const typedParticipationsData: Participation[] = participationsData.map((p: any) => ({
+        id: p.id,
+        user_id: p.user_id,
+        ville_name: p.ville_name,
+        tournee_date_debut: p.tournee_date_debut,
+        tournee_date_fin: p.tournee_date_fin,
+        tournee_index: p.tournee_index,
+        total_logements: p.total_logements,
+        cout_distribution: p.cout_distribution,
+        status: p.status,
+        has_flyer: p.has_flyer,
+        flyer_title: p.flyer_title,
+        flyer_entreprise: p.flyer_entreprise,
+        flyer_email: p.flyer_email,
+        flyer_address_rue: p.flyer_address_rue,
+        flyer_address_code_postal: p.flyer_address_code_postal,
+        flyer_address_ville: p.flyer_address_ville,
+        flyer_format: p.flyer_format,
+        needs_flyer_creation: p.needs_flyer_creation,
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+        tournee_link: p.tournee_link || null
+      }))
 
       // Récupérer les emails des utilisateurs via l'API admin
       const userEmailMap = new Map<string, string>()
@@ -241,6 +263,15 @@ export default function AdminPage() {
       if (irisError) {
         console.error('Erreur lors de la récupération des IRIS:', irisError)
       }
+
+      // Typage explicite pour irisData
+      const typedIrisData: IrisSelection[] = irisData ? irisData.map((iris: any): IrisSelection => ({
+        id: String(iris.id),
+        iris_code: String(iris.iris_code),
+        iris_name: String(iris.iris_name),
+        logements: iris.logements ? Number(iris.logements) : null,
+        participation_id: String(iris.participation_id)
+      })) : []
 
       // Fonction pour vérifier si une tournée est en cours (pas encore passée)
       const isTourneeEnCours = (dateDebutStr: string): boolean => {
@@ -282,7 +313,7 @@ export default function AdminPage() {
         }
         tourneesMap.get(key)!.push({
           ...participation,
-          iris_selections: irisData?.filter(iris => iris.participation_id === participation.id) || [],
+          iris_selections: typedIrisData.filter(iris => iris.participation_id === participation.id),
           user_email: userEmailMap.get(participation.user_id) || 'Email non disponible'
         })
       })
