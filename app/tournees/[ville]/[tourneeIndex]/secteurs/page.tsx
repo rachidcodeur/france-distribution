@@ -1912,7 +1912,7 @@ export default function SecteursPage({
           </p>
           
           {/* Grille à 2 colonnes : Astuce + Partage */}
-          <div style={{
+          <div className="iris-header-grid" style={{
             display: 'grid',
             gridTemplateColumns: '1fr 30%',
             gap: 'var(--spacing-md)',
@@ -1920,7 +1920,7 @@ export default function SecteursPage({
             marginBottom: 'var(--spacing-md)'
           }}>
             {/* Colonne 1 : Astuce */}
-            <div style={{
+            <div className="iris-comment-proceder" style={{
               padding: 'var(--spacing-md)',
               background: '#222e4c',
               border: '1px solid #323b51',
@@ -1957,7 +1957,7 @@ export default function SecteursPage({
             </div>
             
             {/* Colonne 2 : Partage */}
-            <div style={{
+            <div className="iris-share-section" style={{
               background: '#222e4c',
               border: '1px solid #323b51',
               borderRadius: '8px',
@@ -2148,7 +2148,7 @@ export default function SecteursPage({
         {!loading && !error && commune && (
           <>
             {/* LAYOUT PRINCIPAL - 2 colonnes */}
-            <div className="iris-selection-layout" style={{ 
+            <div className="iris-selection-layout iris-mobile-layout" style={{ 
               display: 'flex',
               gap: 'var(--spacing-lg)',
               marginBottom: 'var(--spacing-lg)',

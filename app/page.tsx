@@ -18,6 +18,7 @@ export default function Home() {
     <main>
       <Loader />
       <div
+        className="parent"
         style={{
           background: 'var(--gradient-dark-alt)',
           position: 'relative',

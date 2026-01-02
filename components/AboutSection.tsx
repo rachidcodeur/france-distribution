@@ -189,7 +189,7 @@ export default function AboutSection() {
               </p>
               
               <p style={{ marginBottom: 'var(--spacing-md)' }}>
-                Grâce à un système collaboratif, jusqu'à <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>5 entreprises</strong> peuvent partager une même tournée, ce qui permet de diviser les frais logistiques et d'atteindre jusqu'à <strong style={{ color: 'var(--orange-primary)', fontWeight: 600 }}>-50% d'économies</strong> par rapport à une distribution classique en solo.
+                Grâce à un système collaboratif, jusqu'à <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>5 entreprises</strong> peuvent partager une même tournée, ce qui permet de diviser les frais logistiques et d'atteindre jusqu'à <strong className="cinquante" style={{ color: 'var(--orange-primary)', fontWeight: 600 }}>-50% d'économies</strong> par rapport à une distribution classique en solo.
               </p>
               
               <p style={{ marginBottom: 'var(--spacing-md)' }}>

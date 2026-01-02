@@ -21,7 +21,7 @@ export default function Footer() {
               </Link>
             </div>
             <p className="footer-description">
-              La distribution mutualisée qui réduit vos coûts jusqu'à -40%. Couverture nationale, transparence totale.
+              La distribution mutualisée qui réduit vos coûts jusqu'à <span className="cinquante">-50%</span>. Couverture nationale, transparence totale.
             </p>
           </div>
           <div className="footer-section">

@@ -96,7 +96,7 @@ export default function Hero() {
         background: 'transparent',
         paddingTop: 'calc(88px + 5vh)',
         paddingBottom: '0px',
-        marginBottom: '0px',
+        marginBottom: '-130px',
         zIndex: 3
       }}
     >
@@ -121,7 +121,7 @@ export default function Hero() {
               }}
             >
               La distribution mutualisée qui réduit vos coûts jusqu'à{' '}
-              <span style={{ 
+              <span className="cinquante" style={{ 
                 color: 'var(--orange-primary)',
                 background: 'var(--gradient-main)',
                 WebkitBackgroundClip: 'text',

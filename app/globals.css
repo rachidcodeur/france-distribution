@@ -462,7 +462,7 @@ a {
     margin-top: 88px;
     min-height: 680px;
     background: var(--gradient-dark);
-    padding: var(--spacing-4xl) 0;
+    padding: var(--spacing-4xl) 0 calc(var(--spacing-4xl) - 130px) 0;
     display: flex;
     align-items: center;
     position: relative;
@@ -1961,7 +1961,7 @@ a {
    ============================================ */
 
 .pricing-comparison-horizontal-section {
-    padding: calc(var(--spacing-3xl) + 20px) 0 var(--spacing-4xl) 0;
+    padding: calc(var(--spacing-3xl) + 20px) 0 calc(var(--spacing-3xl) + 20px) 0;
     background: var(--gradient-dark);
 }
 
@@ -2172,8 +2172,18 @@ a {
         font-size: 23px !important;
     }
     
+    .about-section-grid h2 span,
+    .about-section-grid h2 strong {
+        font-size: inherit !important;
+    }
+    
     .about-section-grid p {
         font-size: 14px !important;
+    }
+    
+    .about-section-grid p span,
+    .about-section-grid p strong {
+        font-size: inherit !important;
     }
     
     .about-section-grid > div:first-child {
@@ -2524,24 +2534,47 @@ a {
     .nav-links {
         position: fixed;
         top: 88px;
-        left: 0;
-        right: 0;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
         background: var(--bg-secondary);
         flex-direction: column;
-        padding: var(--spacing-lg);
+        padding: var(--spacing-lg) !important;
         gap: var(--spacing-md);
         transform: translateX(-100%);
-        transition: transform 0.3s ease;
+        transition: transform 0.3s ease, opacity 0.3s ease;
         box-shadow: var(--shadow-hover);
         border-bottom: 1px solid var(--border-subtle);
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
     }
     
     .nav-links.active {
-        transform: translateX(0);
+        transform: translateX(0) !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
     }
     
     .nav-cta {
         margin-left: 0;
+    }
+    
+    /* Réduire la taille de l'icône de compte de 20% sur mobile */
+    .nav-cta[data-user-dropdown] {
+        width: 29px !important;
+        height: 29px !important;
+        padding: 3px !important;
+    }
+    
+    .nav-cta[data-user-dropdown] svg {
+        width: 19px !important;
+        height: 19px !important;
     }
     
     /* Masquer le bouton "Créer mon compte" sur mobile */
@@ -2586,11 +2619,17 @@ a {
     
     .hero {
         min-height: auto;
-        padding: var(--spacing-2xl) 0;
+        padding: var(--spacing-2xl) 0 calc(var(--spacing-2xl) - 340px) 0;
     }
     
     .hero-title {
         font-size: 23px !important;
+    }
+    
+    .hero-title span,
+    .hero-title strong {
+        font-size: inherit !important;
+        line-height: inherit !important;
     }
     
     .hero-subtitle {
@@ -2759,6 +2798,12 @@ a {
         font-size: 14px !important;
     }
     
+    .footer-description span,
+    .footer-description strong {
+        font-size: inherit !important;
+        line-height: inherit !important;
+    }
+    
     .footer-links a {
         font-size: 14px !important;
     }
@@ -2804,16 +2849,37 @@ a {
         font-size: 19px !important;
     }
     
+    .info-card-title span,
+    .info-card-title strong {
+        font-size: inherit !important;
+    }
+    
     .info-card-description {
         font-size: 14px !important;
+    }
+    
+    .info-card-description span,
+    .info-card-description strong {
+        font-size: inherit !important;
     }
     
     .pricing-comparison-title-horizontal {
         font-size: 21px !important;
     }
     
+    .pricing-comparison-title-horizontal span,
+    .pricing-comparison-title-horizontal strong {
+        font-size: inherit !important;
+        line-height: inherit !important;
+    }
+    
     .pricing-option-label-horizontal {
         font-size: 19px !important;
+    }
+    
+    .pricing-option-label-horizontal span,
+    .pricing-option-label-horizontal strong {
+        font-size: inherit !important;
     }
     
     .pricing-option-detail-horizontal {
@@ -3146,9 +3212,26 @@ a {
         padding: var(--spacing-lg) 0 !important;
     }
     
+    .partenaires-header {
+        margin-bottom: var(--spacing-md) !important;
+    }
+    
+    .partenaires-subtitle {
+        font-size: 17px !important;
+        margin-bottom: 0 !important;
+    }
+    
+    /* Desktop : 21px pour le sous-titre partenaires */
+    @media (min-width: 769px) {
+        .partenaires-subtitle {
+            font-size: 21px !important;
+        }
+    }
+    
     .partenaires-slider-container {
         padding: var(--spacing-lg) 20px !important;
         max-width: 100% !important;
+        margin-top: var(--spacing-sm) !important;
     }
     
     .partenaires-slider {
@@ -3188,15 +3271,16 @@ a {
     
     /* Réduire la hauteur de l'image dans les cartes partenaires */
     .partenaire-image-container {
-        height: 180px !important;
+        height: auto !important;
+        min-height: 220px !important;
         marginBottom: var(--spacing-md) !important;
     }
     
     /* Réduire les espacements dans les sections */
     .hero {
         padding-top: calc(88px + 2vh) !important;
-        padding-bottom: var(--spacing-lg) !important;
-        margin-bottom: -200px !important;
+        padding-bottom: calc(var(--spacing-lg) - 160px) !important;
+        margin-bottom: -300px !important;
     }
     
     /* Section statistiques sous la bannière - NE PAS APPLIQUER à hero-stats-section */
@@ -3228,7 +3312,7 @@ a {
     
     /* S'assurer que le Hero n'a pas de margin-bottom */
     .hero {
-        margin-bottom: 0 !important;
+        margin-bottom: -440px !important;
         padding-bottom: 0 !important;
     }
     
@@ -3292,6 +3376,76 @@ a {
   /* Padding horizontal de 15px pour la page de sélection IRIS */
   .iris-selection-page-container {
     padding: 0 15px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  /* Section header : utiliser display: contents pour que ses enfants deviennent des enfants directs */
+  .section-header {
+    display: contents !important;
+  }
+  
+  /* Titre et sous-titre gardent leur style mais sont dans le flux */
+  .section-title,
+  .section-subtitle {
+    order: 0 !important;
+    width: 100% !important;
+  }
+  
+  /* Grille header utilise display: contents pour que ses enfants soient dans le flux principal */
+  .iris-header-grid {
+    display: contents !important;
+  }
+  
+  /* Section Comment procéder - order 1 */
+  .iris-comment-proceder {
+    order: 1 !important;
+    width: 100% !important;
+    margin-bottom: var(--spacing-md) !important;
+  }
+  
+  /* Layout principal utilise display: contents pour que ses enfants soient dans le flux principal */
+  .iris-selection-layout {
+    display: contents !important;
+  }
+  
+  /* Colonne gauche : utiliser display: contents pour que ses enfants deviennent des enfants directs du layout */
+  .iris-left-column {
+    display: contents !important;
+  }
+  
+  /* Progress bar - order 2 */
+  .iris-progress-section {
+    order: 2 !important;
+    flex-direction: column !important;
+    gap: var(--spacing-md) !important;
+    margin-bottom: var(--spacing-md) !important;
+    width: 100% !important;
+  }
+  
+  /* Carte - order 3 */
+  .iris-map-container {
+    order: 3 !important;
+    width: 100% !important;
+    min-height: 400px !important;
+    height: 400px !important;
+    margin-bottom: var(--spacing-md) !important;
+  }
+  
+  /* Section Partage - order 4 */
+  .iris-share-section {
+    order: 4 !important;
+    width: 100% !important;
+    min-width: auto !important;
+    margin-bottom: var(--spacing-md) !important;
+  }
+  
+  /* Section Tracé - order 5 */
+  .iris-trace-section {
+    order: 5 !important;
+    width: 100% !important;
+    margin-top: var(--spacing-md) !important;
+    margin-bottom: var(--spacing-md) !important;
   }
   
   /* Section FAQ - Padding horizontal de 20px sur mobile */
@@ -3320,24 +3474,6 @@ a {
   /* Colonne gauche : utiliser display: contents pour que ses enfants deviennent des enfants directs du layout */
   .iris-left-column {
     display: contents !important;
-  }
-  
-  /* Progress bar en premier sur mobile */
-  .iris-progress-section {
-    order: 1 !important;
-    flex-direction: column !important;
-    gap: var(--spacing-md) !important;
-    margin-bottom: var(--spacing-md) !important;
-    width: 100% !important;
-  }
-  
-  /* Carte en deuxième position */
-  .iris-map-container {
-    order: 2 !important;
-    width: 100% !important;
-    min-height: 400px !important;
-    height: 400px !important;
-    margin-bottom: var(--spacing-md) !important;
   }
   
   /* Bloc participants existants en troisième position (si présent) - après la carte, avant tracé+partage */
@@ -3618,5 +3754,26 @@ a {
 .input-placeholder-white:-ms-input-placeholder {
   color: white;
   opacity: 0.7;
+}
+
+
+/* Mon propre CSS */
+.pricing-comparison-horizontal {
+    padding-bottom: 0px;
+}
+
+
+.parent{
+    padding-bottom: 30px;
+}
+@media screen and (max-width: 768px) {
+    .iris-comment-proceder{
+        margin-top: 20px!important;
+    }
+
+    .hero-title span.cinquante, .pricing-comparison-title-horizontal span.cinquante {
+        font-size: 22px!important;
+    }
+    
 }
 

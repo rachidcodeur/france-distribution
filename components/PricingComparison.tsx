@@ -78,7 +78,7 @@ export default function PricingComparison({ variant = 'fixed' }: PricingComparis
         ref={sectionRef}
         className="pricing-comparison-horizontal-section"
         style={{
-          padding: 'var(--spacing-2xl) 0',
+          padding: 'var(--spacing-2xl) 0 var(--spacing-2xl) 0',
           background: 'transparent',
           position: 'relative'
         }}
@@ -116,7 +116,7 @@ export default function PricingComparison({ variant = 'fixed' }: PricingComparis
                 }}
               >
                 Réalisez jusqu'à{' '}
-                <span style={{ 
+                <span className="cinquante" style={{ 
                   color: 'var(--orange-primary)',
                   background: 'var(--gradient-main)',
                   WebkitBackgroundClip: 'text',

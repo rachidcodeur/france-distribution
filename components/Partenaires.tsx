@@ -14,7 +14,7 @@ const partenaires = [
     name: 'Nexora',
     description: 'Agence web innovante qui crée des sites web assistés par l\'IA à des tarifs compétitifs',
     image: '/partenaires/nexora-rea.webp',
-    url: 'https://nexora.fr',
+    url: 'https://nexora-agenceweb.fr',
     tag: 'Création de sites web',
     color: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%)'
   },
@@ -22,15 +22,15 @@ const partenaires = [
     name: 'Home Service',
     description: 'Plateforme de mise en relation entre artisans et clients pour tous vos travaux d\'habitat',
     image: '/partenaires/home-service-rea.webp',
-    url: 'https://home-service.fr',
+    url: 'https://www.home-service.io',
     tag: 'Travaux & Rénovation',
     color: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%)'
   },
   {
-    name: 'Distribution Réa',
-    description: 'Demandez des devis pour la distribution de flyers et documents publicitaires pour votre entreprise',
+    name: 'Distribution Flyer',
+    description: 'Distribution d\'imprimés publicitaires en boîtes aux lettres à Bordeaux et en Gironde. Expert de la diffusion de journaux locaux, documents électoraux et magazines municipaux : agenda de mairie, bulletin municipal, informations de proximité. Rapport journalier avec tracés GPS à l\'appui.',
     image: '/partenaires/distri-rea.webp',
-    url: 'https://distribution-rea.fr',
+    url: 'https://distribution-bordeaux.flyers-33.fr/',
     tag: 'Distribution de flyers',
     color: 'linear-gradient(135deg, rgba(251, 109, 37, 0.2) 0%, rgba(232, 90, 26, 0.1) 100%)'
   }
@@ -140,7 +140,7 @@ export default function Partenaires() {
     >
       <div className="container" style={{ maxWidth: 'var(--max-width)', margin: '0 auto', padding: '0 var(--spacing-lg)' }}>
         {/* Titre de la section */}
-        <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
+        <div className="partenaires-header" style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
           <div
             style={{
               display: 'inline-block',
@@ -173,8 +173,9 @@ export default function Partenaires() {
             Découvrez nos partenaires de confiance
           </h2>
           <p
+            className="partenaires-subtitle"
             style={{
-              fontSize: '18px',
+              fontSize: '21px',
               color: 'var(--text-secondary)',
               maxWidth: '600px',
               margin: '0 auto',
@@ -189,10 +190,10 @@ export default function Partenaires() {
         <div
           style={{
             position: 'relative',
-            maxWidth: '1200px',
+            maxWidth: '900px',
             margin: '0 auto',
-            overflow: 'hidden',
-            padding: 'var(--spacing-2xl) 40px'
+            overflow: 'visible',
+            padding: 'var(--spacing-2xl) 40px var(--spacing-xl) 40px'
           }}
           className="partenaires-slider-container"
           onMouseEnter={() => setIsPaused(true)}
@@ -203,10 +204,12 @@ export default function Partenaires() {
             style={{
               position: 'relative',
               width: '100%',
-              height: '500px',
+              height: 'auto',
+              minHeight: '600px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              marginBottom: 'var(--spacing-lg)'
             }}
             className="partenaires-slider"
           >
@@ -222,9 +225,9 @@ export default function Partenaires() {
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
                   width: '100%',
-                  maxWidth: '1000px',
-                  height: '500px',
-                  maxHeight: '500px',
+                  maxWidth: '800px',
+                  height: 'auto',
+                  minHeight: '500px',
                   textDecoration: 'none',
                   color: 'inherit',
                   cursor: index === currentIndex ? 'pointer' : 'default',
@@ -246,8 +249,8 @@ export default function Partenaires() {
                       overflow: 'hidden',
                       cursor: 'pointer',
                       width: '100%',
-                      height: '100%',
-                      maxHeight: '500px',
+                      height: 'auto',
+                      minHeight: '500px',
                       display: 'flex',
                       flexDirection: 'column'
                     }}
@@ -314,20 +317,27 @@ export default function Partenaires() {
                     style={{
                       position: 'relative',
                       width: '100%',
-                      height: '240px',
+                      height: 'auto',
+                      minHeight: '320px',
                       borderRadius: '16px',
                       overflow: 'hidden',
                       marginBottom: 'var(--spacing-lg)',
                       background: 'var(--bg-accent)',
-                      border: '1px solid var(--border-subtle)'
+                      border: '1px solid var(--border-subtle)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}
                   >
                     <Image
                       src={partenaire.image}
                       alt={partenaire.name}
-                      fill
+                      width={800}
+                      height={400}
                       style={{
-                        objectFit: 'cover',
+                        width: '100%',
+                        height: 'auto',
+                        objectFit: 'contain',
                         transition: 'transform 0.3s ease'
                       }}
                       className="partenaire-image"
@@ -425,8 +435,10 @@ export default function Partenaires() {
               display: 'flex',
               justifyContent: 'center',
               gap: '12px',
-              marginTop: 'var(--spacing-xl)',
-              alignItems: 'center'
+              marginTop: 'var(--spacing-lg)',
+              alignItems: 'center',
+              position: 'relative',
+              zIndex: 10
             }}
           >
             {partenaires.map((_, index) => (
