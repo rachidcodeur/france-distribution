@@ -189,11 +189,12 @@ export default function Partenaires() {
         <div
           style={{
             position: 'relative',
-            maxWidth: '800px',
+            maxWidth: '1200px',
             margin: '0 auto',
             overflow: 'hidden',
-            padding: 'var(--spacing-2xl) 100px'
+            padding: 'var(--spacing-2xl) 40px'
           }}
+          className="partenaires-slider-container"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
@@ -202,8 +203,12 @@ export default function Partenaires() {
             style={{
               position: 'relative',
               width: '100%',
-              height: '600px'
+              height: '500px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
+            className="partenaires-slider"
           >
             {partenaires.map((partenaire, index) => (
               <a
@@ -217,7 +222,9 @@ export default function Partenaires() {
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
                   width: '100%',
-                  maxWidth: '600px',
+                  maxWidth: '1000px',
+                  height: '500px',
+                  maxHeight: '500px',
                   textDecoration: 'none',
                   color: 'inherit',
                   cursor: index === currentIndex ? 'pointer' : 'default',
@@ -225,44 +232,46 @@ export default function Partenaires() {
                   zIndex: index === currentIndex ? 5 : 1
                 }}
               >
-              <div
-                className="partenaire-card"
-                style={{
-                  background: 'var(--bg-glass)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: '24px',
-                  padding: 'var(--spacing-3xl)',
-                  transition: 'all 0.3s ease',
-                  boxShadow: 'var(--shadow-card)',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  width: '100%',
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}
-                onMouseEnter={(e) => {
-                  const gradient = e.currentTarget.querySelector('.partenaire-gradient') as HTMLElement
-                  const image = e.currentTarget.querySelector('.partenaire-image') as HTMLElement
-                  const shine = e.currentTarget.querySelector('.partenaire-shine') as HTMLElement
-                  const link = e.currentTarget.querySelector('.partenaire-link svg') as HTMLElement
-                  if (gradient) gradient.style.opacity = '1'
-                  if (image) image.style.transform = 'scale(1.05)'
-                  if (shine) shine.style.transform = 'rotate(45deg) translate(100%, 100%)'
-                  if (link) link.style.transform = 'translateX(4px)'
-                }}
-                onMouseLeave={(e) => {
-                  const gradient = e.currentTarget.querySelector('.partenaire-gradient') as HTMLElement
-                  const image = e.currentTarget.querySelector('.partenaire-image') as HTMLElement
-                  const shine = e.currentTarget.querySelector('.partenaire-shine') as HTMLElement
-                  const link = e.currentTarget.querySelector('.partenaire-link svg') as HTMLElement
-                  if (gradient) gradient.style.opacity = '0'
-                  if (image) image.style.transform = 'scale(1)'
-                  if (shine) shine.style.transform = 'rotate(45deg)'
-                  if (link) link.style.transform = 'translateX(0)'
-                }}
-              >
+                  <div
+                    className="partenaire-card"
+                    style={{
+                      background: 'var(--bg-glass)',
+                      backdropFilter: 'blur(20px)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '24px',
+                      padding: 'var(--spacing-3xl)',
+                      transition: 'all 0.3s ease',
+                      boxShadow: 'var(--shadow-card)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      width: '100%',
+                      height: '100%',
+                      maxHeight: '500px',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}
+                    onMouseEnter={(e) => {
+                      const gradient = e.currentTarget.querySelector('.partenaire-gradient') as HTMLElement
+                      const image = e.currentTarget.querySelector('.partenaire-image') as HTMLElement
+                      const shine = e.currentTarget.querySelector('.partenaire-shine') as HTMLElement
+                      const link = e.currentTarget.querySelector('.partenaire-link svg') as HTMLElement
+                      if (gradient) gradient.style.opacity = '1'
+                      if (image) image.style.transform = 'scale(1.05)'
+                      if (shine) shine.style.transform = 'rotate(45deg) translate(100%, 100%)'
+                      if (link) link.style.transform = 'translateX(4px)'
+                    }}
+                    onMouseLeave={(e) => {
+                      const gradient = e.currentTarget.querySelector('.partenaire-gradient') as HTMLElement
+                      const image = e.currentTarget.querySelector('.partenaire-image') as HTMLElement
+                      const shine = e.currentTarget.querySelector('.partenaire-shine') as HTMLElement
+                      const link = e.currentTarget.querySelector('.partenaire-link svg') as HTMLElement
+                      if (gradient) gradient.style.opacity = '0'
+                      if (image) image.style.transform = 'scale(1)'
+                      if (shine) shine.style.transform = 'rotate(45deg)'
+                      if (link) link.style.transform = 'translateX(0)'
+                    }}
+                  >
                 {/* Gradient background au hover */}
                 <div
                   className="partenaire-gradient"
@@ -301,6 +310,7 @@ export default function Partenaires() {
 
                   {/* Image */}
                   <div
+                    className="partenaire-image-container"
                     style={{
                       position: 'relative',
                       width: '100%',
@@ -345,7 +355,12 @@ export default function Partenaires() {
                       color: 'var(--text-secondary)',
                       lineHeight: 1.6,
                       marginBottom: 'var(--spacing-md)',
-                      flex: 1
+                      flex: 1,
+                      overflow: 'hidden',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      textOverflow: 'ellipsis'
                     }}
                   >
                     {partenaire.description}
@@ -437,88 +452,6 @@ export default function Partenaires() {
             ))}
           </div>
 
-          {/* Flèches de navigation */}
-          <button
-            onClick={() => setCurrentIndex((prev) => (prev - 1 + partenaires.length) % partenaires.length)}
-            onMouseEnter={(e) => {
-              setIsPaused(true)
-              e.currentTarget.style.background = 'var(--orange-primary)'
-              e.currentTarget.style.borderColor = 'var(--orange-primary)'
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'
-            }}
-            onMouseLeave={(e) => {
-              setIsPaused(false)
-              e.currentTarget.style.background = 'var(--bg-glass)'
-              e.currentTarget.style.borderColor = 'var(--border-subtle)'
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1)'
-            }}
-            style={{
-              position: 'absolute',
-              left: '0',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              border: '1px solid var(--border-subtle)',
-              background: 'var(--bg-glass)',
-              backdropFilter: 'blur(10px)',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.3s ease',
-              zIndex: 10,
-              boxShadow: 'var(--shadow-card)'
-            }}
-            aria-label="Partenaire précédent"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-
-          <button
-            onClick={() => setCurrentIndex((prev) => (prev + 1) % partenaires.length)}
-            onMouseEnter={(e) => {
-              setIsPaused(true)
-              e.currentTarget.style.background = 'var(--orange-primary)'
-              e.currentTarget.style.borderColor = 'var(--orange-primary)'
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'
-            }}
-            onMouseLeave={(e) => {
-              setIsPaused(false)
-              e.currentTarget.style.background = 'var(--bg-glass)'
-              e.currentTarget.style.borderColor = 'var(--border-subtle)'
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1)'
-            }}
-            style={{
-              position: 'absolute',
-              right: '0',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              border: '1px solid var(--border-subtle)',
-              background: 'var(--bg-glass)',
-              backdropFilter: 'blur(10px)',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.3s ease',
-              zIndex: 10,
-              boxShadow: 'var(--shadow-card)'
-            }}
-            aria-label="Partenaire suivant"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
         </div>
       </div>
     </section>

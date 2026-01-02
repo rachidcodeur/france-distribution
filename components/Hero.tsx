@@ -96,7 +96,7 @@ export default function Hero() {
         background: 'transparent',
         paddingTop: 'calc(88px + 5vh)',
         paddingBottom: '0px',
-        marginBottom: '-400px',
+        marginBottom: '0px',
         zIndex: 3
       }}
     >
@@ -129,7 +129,7 @@ export default function Hero() {
                 backgroundClip: 'text',
                 position: 'relative'
               }}>
-                -40%
+                -50%
               </span>
             </h1>
             
@@ -144,7 +144,7 @@ export default function Hero() {
                 fontWeight: 400
               }}
             >
-              Couverture France entière • Calendrier trimestriel • Transparence totale
+              France entière des villes de + 10 000 habitants ( calendrier semestriel • Transparence totale avec Tracés GPS de la mission en direct )
             </p>
             
             <div 
@@ -156,6 +156,7 @@ export default function Hero() {
                 justifyContent: 'center',
                 flexWrap: 'wrap',
                 marginBottom: '0px',
+                paddingBottom: '0px',
                 position: 'relative',
                 zIndex: 10
               }}

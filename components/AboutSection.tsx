@@ -185,19 +185,19 @@ export default function AboutSection() {
               }}
             >
               <p style={{ marginBottom: 'var(--spacing-md)' }}>
-                France Distribution est la <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>première plateforme</strong> dédiée à la <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>distribution mutualisée</strong> de prospectus en boîtes aux lettres, pensée pour <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>réduire drastiquement les coûts</strong> de diffusion tout en garantissant une organisation simple et transparente.
+                France Distribution est la <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>première plateforme</strong> dédiée à la <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>distribution mutualisée</strong> de flyers & prospectus en boîtes aux lettres sur toute la France, pensée pour <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>réduire drastiquement les coûts</strong> de diffusion tout en garantissant une organisation simple et transparente.
               </p>
               
               <p style={{ marginBottom: 'var(--spacing-md)' }}>
-                Grâce à un système collaboratif, jusqu'à <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>5 entreprises</strong> peuvent partager une même tournée, ce qui permet de diviser les frais logistiques et d'atteindre jusqu'à <strong style={{ color: 'var(--orange-primary)', fontWeight: 600 }}>-40% d'économies</strong> par rapport à une distribution classique.
+                Grâce à un système collaboratif, jusqu'à <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>5 entreprises</strong> peuvent partager une même tournée, ce qui permet de diviser les frais logistiques et d'atteindre jusqu'à <strong style={{ color: 'var(--orange-primary)', fontWeight: 600 }}>-50% d'économies</strong> par rapport à une distribution classique en solo.
               </p>
               
               <p style={{ marginBottom: 'var(--spacing-md)' }}>
-                Nous couvrons <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>toute la France</strong>, planifions nos opérations selon un <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>calendrier trimestriel</strong>, et fournissons un <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>suivi fiable</strong> avec <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>rapports détaillés</strong> pour chaque campagne.
+                Nous couvrons toute la France sur les <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>villes de + de 10 000 habitants</strong>, planifions nos opérations selon un <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>calendrier semestriel en ligne</strong>, et fournissons un <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>suivi fiable</strong> avec <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>rapports détaillés</strong> pour chaque campagne <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>en temps réel</strong>.
               </p>
               
               <p style={{ marginBottom: 0 }}>
-                Notre mission : rendre la <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>distribution physique</strong> plus accessible, plus rentable et plus efficace, tout en offrant une <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>visibilité nationale</strong> à vos supports.
+                Notre mission : rendre la <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>distribution physique</strong> plus accessible, plus rentable et plus efficace, tout en offrant une <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>visibilité</strong> à vos supports.
               </p>
             </div>
 

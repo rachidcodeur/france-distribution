@@ -29,8 +29,12 @@ export default function Home() {
         
         {/* Section des statistiques sous la bannière */}
         <section
+          className="hero-stats-section"
           style={{
-            padding: 'calc(var(--spacing-lg) + 400px) 0 var(--spacing-2xl) 0',
+            paddingTop: '30px',
+            paddingBottom: 'var(--spacing-2xl)',
+            paddingLeft: '0',
+            paddingRight: '0',
             position: 'relative',
             zIndex: 1
           }}
@@ -54,9 +58,9 @@ export default function Home() {
                 }}
               >
               {[
-                { number: '500+', label: 'Villes' },
-                { number: '5M+', label: 'Logements' },
-                { number: '-40%', label: 'Économies' }
+                { number: '2500+', label: 'Villes' },
+                { number: '20M+', label: 'Logements' },
+                { number: '-50%', label: 'Économies' }
               ].map((stat, index) => (
                 <div
                   key={index}

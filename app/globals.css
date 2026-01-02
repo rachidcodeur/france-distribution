@@ -2320,36 +2320,134 @@ a {
 
 @media (max-width: 768px) {
     :root {
-        --spacing-4xl: 80px;
-        --spacing-3xl: 64px;
+        --spacing-4xl: 60px;
+        --spacing-3xl: 48px;
+        --spacing-2xl: 40px;
+        --spacing-xl: 32px;
+        --spacing-lg: 24px;
     }
     
-    /* Typographie mobile selon spécifications */
-    h1 {
+    /* Typographie mobile selon spécifications - FORCER PARTOUT */
+    h1,
+    h1 * {
         font-size: 23px !important;
     }
     
-    h2 {
+    h2,
+    h2 * {
         font-size: 21px !important;
     }
     
-    h3 {
+    h3,
+    h3 * {
         font-size: 20px !important;
     }
     
-    h4 {
+    h4,
+    h4 * {
         font-size: 19px !important;
     }
     
-    h5 {
+    h5,
+    h5 * {
         font-size: 18px !important;
     }
     
-    h6 {
+    h6,
+    h6 * {
         font-size: 16px !important;
     }
     
-    p {
+    p,
+    p *,
+    span:not(.mobile-menu-toggle span),
+    div:not(.container):not(.mobile-menu-toggle) {
+        font-size: 14px !important;
+    }
+    
+    /* Forcer les tailles pour les styles inline et clamp() */
+    [style*="fontSize"],
+    [style*="font-size"],
+    [style*="clamp"] {
+        /* h1 - toutes les grandes tailles */
+        &[style*="36px"],
+        &[style*="32px"],
+        &[style*="28px"],
+        &[style*="clamp(2.5rem"],
+        &[style*="clamp(32px"],
+        &[style*="clamp(48px"] {
+            font-size: 23px !important;
+        }
+        
+        /* h2 */
+        &[style*="24px"],
+        &[style*="22px"],
+        &[style*="clamp(2rem"],
+        &[style*="clamp(1.8rem"] {
+            font-size: 21px !important;
+        }
+        
+        /* h3 */
+        &[style*="20px"] {
+            font-size: 20px !important;
+        }
+        
+        /* h4 */
+        &[style*="18px"] {
+            font-size: 19px !important;
+        }
+        
+        /* h5 */
+        &[style*="16px"] {
+            font-size: 18px !important;
+        }
+        
+        /* h6 */
+        &[style*="14px"] {
+            font-size: 16px !important;
+        }
+        
+        /* p */
+        &[style*="15px"],
+        &[style*="1.1rem"],
+        &[style*="1.4rem"] {
+            font-size: 14px !important;
+        }
+    }
+    
+    /* Règles supplémentaires pour forcer les tailles partout sur mobile */
+    h1, h1 *, .hero-title, .cta-title {
+        font-size: 23px !important;
+    }
+    
+    h2, h2 *, .pricing-comparison-title-horizontal, .how-to-search-title {
+        font-size: 21px !important;
+    }
+    
+    h3, h3 *, .tournee-title, .pricing-title {
+        font-size: 20px !important;
+    }
+    
+    h4, h4 *, .service-title, .footer-title, .info-card-title, 
+    .pricing-option-label-horizontal, .ville-name {
+        font-size: 19px !important;
+    }
+    
+    h5, h5 *, .step-title {
+        font-size: 18px !important;
+    }
+    
+    h6, h6 * {
+        font-size: 16px !important;
+    }
+    
+    p, p *, span:not(.mobile-menu-toggle span), 
+    div:not(.container):not(.mobile-menu-toggle):not(.partenaires-slider-container),
+    .service-description, .footer-description, .info-card-description, 
+    .pricing-option-detail-horizontal, .pricing-savings-label-horizontal, 
+    .pricing-savings-detail-horizontal, .stat-label, .faq-question, .faq-answer p,
+    .contact-item p, .cta-subtitle, .footer-links a, .form-group label,
+    .form-group input, .form-group textarea, .step-description {
         font-size: 14px !important;
     }
     
@@ -2358,10 +2456,26 @@ a {
     button:not(.mobile-menu-toggle),
     a.btn {
         font-size: 13px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
     }
     
     .container {
-        padding: 0 24px;
+        padding: 0 10px;
+    }
+    
+    /* Padding horizontal de 10px sur toute la page d'accueil mobile */
+    main {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+    
+    /* S'assurer que les sections ont aussi ce padding */
+    section {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
     
     .nav-links {
@@ -2387,8 +2501,44 @@ a {
         margin-left: 0;
     }
     
+    /* Masquer le bouton "Créer mon compte" sur mobile */
+    .nav-cta.btn,
+    .nav-cta#headerCta {
+        display: none !important;
+    }
+    
     .mobile-menu-toggle {
         display: flex;
+        margin-left: 8px;
+        margin-right: -8px;
+    }
+    
+    /* S'assurer que le conteneur flex avec l'icône et le hamburger est aligné à droite */
+    .nav > div:last-child {
+        margin-left: auto !important;
+        justify-content: flex-end !important;
+        width: auto !important;
+        margin-right: -8px !important;
+    }
+    
+    /* Sur mobile, le nav devient flex pour mieux gérer l'alignement */
+    .nav {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+    }
+    
+    /* Logo à gauche */
+    .nav > .logo {
+        flex-shrink: 0;
+    }
+    
+    /* Conteneur icône + hamburger complètement à droite */
+    .nav > div:last-child {
+        margin-left: auto !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
     }
     
     .hero {
@@ -2411,11 +2561,19 @@ a {
     .btn {
         padding: 12px 24px;
         font-size: 13px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
     }
     
     .btn-large {
         padding: 14px 32px;
         font-size: 13px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
     }
     
     .hero-stats {
@@ -2690,7 +2848,7 @@ a {
     
     /* Améliorer la responsivité des layouts */
     .container {
-        padding: 0 16px !important;
+        padding: 0 10px !important;
     }
     
     /* Dashboard responsive */
@@ -2720,6 +2878,10 @@ a {
     button {
         padding: 10px 20px !important;
         min-height: 44px; /* Taille minimale pour le touch */
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
     }
     
     /* Améliorer les inputs sur mobile */
@@ -2772,7 +2934,7 @@ a {
     }
     
     .container {
-        padding: 0 16px !important;
+        padding: 0 10px !important;
     }
 }
 
@@ -2927,14 +3089,161 @@ a {
     grid-template-columns: 1fr !important;
   }
   
-  /* Améliorer les espacements sur mobile */
-  section {
-    padding: var(--spacing-xl) 0 !important;
-  }
-  
-  .container {
-    padding: 0 8px !important;
-  }
+    /* Améliorer les espacements sur mobile */
+    section {
+        padding: var(--spacing-lg) 0 !important;
+    }
+    
+    .container {
+        padding: 0 10px !important;
+    }
+    
+    /* Réduire les espacements des sections partenaires */
+    .partenaires {
+        padding: var(--spacing-lg) 0 !important;
+    }
+    
+    .partenaires-slider-container {
+        padding: var(--spacing-lg) 20px !important;
+        max-width: 100% !important;
+    }
+    
+    .partenaires-slider {
+        height: 450px !important;
+    }
+    
+    .partenaire-card {
+        padding: var(--spacing-lg) !important;
+        height: 100% !important;
+        max-height: 450px !important;
+    }
+    
+    /* S'assurer que les cartes partenaires ont la même hauteur */
+    .partenaires-slider-container a {
+        max-width: 100% !important;
+        height: 450px !important;
+        max-height: 450px !important;
+    }
+    
+    /* Limiter la description à 3 lignes pour uniformiser */
+    .partenaire-card p {
+        display: -webkit-box !important;
+        -webkit-line-clamp: 3 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    
+    /* Masquer les flèches de navigation sur mobile si nécessaire */
+    .partenaires-slider-container button[aria-label*="précédent"],
+    .partenaires-slider-container button[aria-label*="suivant"] {
+        width: 40px !important;
+        height: 40px !important;
+        left: 10px !important;
+        right: 10px !important;
+    }
+    
+    /* Réduire la hauteur de l'image dans les cartes partenaires */
+    .partenaire-image-container {
+        height: 180px !important;
+        marginBottom: var(--spacing-md) !important;
+    }
+    
+    /* Réduire les espacements dans les sections */
+    .hero {
+        padding-top: calc(88px + 2vh) !important;
+        padding-bottom: var(--spacing-lg) !important;
+        margin-bottom: -200px !important;
+    }
+    
+    /* Section statistiques sous la bannière - NE PAS APPLIQUER à hero-stats-section */
+    section:not(.hero-stats-section)[style*="paddingTop"],
+    section:not(.hero-stats-section)[style*="padding-top"] {
+        padding-top: var(--spacing-lg) !important;
+        padding-bottom: var(--spacing-lg) !important;
+    }
+    
+    /* Réduire les espacements dans les titres de sections */
+    .section-header h2,
+    h2[style*="fontSize"],
+    h2[style*="font-size"] {
+        margin-bottom: var(--spacing-md) !important;
+    }
+    
+    /* Réduire les espacements dans les descriptions */
+    p[style*="marginBottom"],
+    p[style*="margin-bottom"] {
+        margin-bottom: var(--spacing-sm) !important;
+    }
+    
+    /* Section statistiques - FORCER l'espacement */
+    .hero-stats-section {
+        padding-top: 20px !important;
+        padding-bottom: var(--spacing-lg) !important;
+        margin-top: 0 !important;
+    }
+    
+    /* S'assurer que le Hero n'a pas de margin-bottom */
+    .hero {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    
+    /* S'assurer que hero-cta n'a pas de margin-bottom */
+    .hero-cta {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    
+    /* Sur desktop, 30px d'espacement */
+    @media (min-width: 769px) {
+        .hero-stats-section {
+            padding-top: 30px !important;
+            padding-bottom: var(--spacing-2xl) !important;
+        }
+    }
+    
+    /* Forcer l'espacement même si d'autres règles CSS interfèrent */
+    section.hero-stats-section[style*="padding"],
+    section.hero-stats-section[style*="paddingTop"],
+    section.hero-stats-section[style*="padding-top"] {
+        padding-top: 20px !important;
+    }
+    
+    @media (min-width: 769px) {
+        section.hero-stats-section[style*="padding"],
+        section.hero-stats-section[style*="paddingTop"],
+        section.hero-stats-section[style*="padding-top"] {
+            padding-top: 30px !important;
+        }
+    }
+    
+    /* Réduire les gaps dans les flexbox */
+    div[style*="gap: 'var(--spacing-2xl)'"],
+    div[style*="gap: var(--spacing-2xl)"] {
+        gap: var(--spacing-md) !important;
+    }
+    
+    /* Partenaires - améliorer la navigation sur mobile */
+    .partenaires-slider-container button[aria-label*="précédent"] {
+        left: 5px !important;
+    }
+    
+    .partenaires-slider-container button[aria-label*="suivant"] {
+        right: 5px !important;
+    }
+    
+    /* Réduire les marges entre les sections */
+    .features,
+    .how-it-works,
+    .stats,
+    .services,
+    .faq,
+    .cta-section,
+    .pricing-comparison,
+    .about-section {
+        padding: var(--spacing-lg) 0 !important;
+    }
   
   /* Page de sélection IRIS - Mobile */
   /* Padding horizontal de 15px pour la page de sélection IRIS */

@@ -123,7 +123,7 @@ export default function PricingComparison({ variant = 'fixed' }: PricingComparis
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text'
                 }}>
-                  -40%
+                  -50%
                 </span>{' '}
                 d'économies sur une distribution
               </h2>
@@ -175,7 +175,7 @@ export default function PricingComparison({ variant = 'fixed' }: PricingComparis
                     lineHeight: 1.2
                   }}
                 >
-                  300€
+                  200€
                 </div>
                 <div 
                   className="pricing-option-detail-horizontal"
@@ -219,7 +219,7 @@ export default function PricingComparison({ variant = 'fixed' }: PricingComparis
                     zIndex: 2
                   }}
                 >
-                  -40%
+                  -50%
                 </div>
                 <div className="pricing-option-header-horizontal" style={{ marginBottom: 'var(--spacing-md)', marginTop: 'var(--spacing-sm)' }}>
                   <span 
@@ -301,7 +301,7 @@ export default function PricingComparison({ variant = 'fixed' }: PricingComparis
                     lineHeight: 1.2
                   }}
                 >
-                  200€
+                  100€
                 </div>
                 <div 
                   className="pricing-savings-detail-horizontal"
@@ -346,14 +346,14 @@ export default function PricingComparison({ variant = 'fixed' }: PricingComparis
         <div className="pricing-option-header">
           <span className="pricing-option-label">Distribution solo</span>
         </div>
-        <div className="pricing-option-price">300€</div>
+        <div className="pricing-option-price">200€</div>
         <div className="pricing-option-detail">pour 1 000 documents</div>
       </div>
 
       <div className="pricing-option pricing-option-featured">
         <div className="pricing-option-header">
           <span className="pricing-option-label">Distribution mutualisée</span>
-          <span className="pricing-badge">-40%</span>
+          <span className="pricing-badge">-50%</span>
         </div>
         <div className="pricing-option-price pricing-option-price-featured">100€</div>
         <div className="pricing-option-detail">pour 1 000 documents</div>
@@ -361,7 +361,7 @@ export default function PricingComparison({ variant = 'fixed' }: PricingComparis
 
       <div className="pricing-savings">
         <span className="pricing-savings-label">Économies estimées</span>
-        <div className="pricing-savings-amount">200€</div>
+        <div className="pricing-savings-amount">100€</div>
         <div className="pricing-savings-detail">par tranche de 1 000 documents</div>
       </div>
     </div>

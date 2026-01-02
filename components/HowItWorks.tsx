@@ -12,13 +12,13 @@ const steps = [
   {
     number: '1',
     title: 'Choisissez votre ville',
-    description: 'Sélectionnez votre ville et un créneau trimestriel',
+    description: 'Sélectionnez votre ville et un créneau semestriel',
     icon: '📍'
   },
   {
     number: '2',
     title: 'Rejoignez la tournée',
-    description: 'Participez à une tournée mutualisée avec d\'autres entreprises',
+    description: 'Participez à une tournée mutualisée avec d\'autres entreprises local',
     icon: '🤝'
   },
   {
