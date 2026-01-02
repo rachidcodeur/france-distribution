@@ -14,8 +14,6 @@ export default function Hero() {
   const titleRef = useRef<HTMLHeadingElement>(null)
   const subtitleRef = useRef<HTMLParagraphElement>(null)
   const ctaRef = useRef<HTMLDivElement>(null)
-  const statsRef = useRef<HTMLDivElement>(null)
-  const backgroundRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined' || !heroRef.current) return
@@ -28,30 +26,12 @@ export default function Hero() {
         gsap.set(child, { opacity: 1, y: 0 })
       })
     }
-    if (statsRef.current) {
-      Array.from(statsRef.current.children).forEach((child: any) => {
-        gsap.set(child, { opacity: 1, y: 0, scale: 1 })
-      })
-    }
 
     const ctx = gsap.context(() => {
       // Animation d'entrée principale
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
 
-      // Background parallax
-      if (backgroundRef.current) {
-        gsap.to(backgroundRef.current, {
-          yPercent: -20,
-          scale: 1.1,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: heroRef.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 1
-          }
-        })
-      }
+      // Background parallax retiré pour un fond statique
 
       // Titre avec split text effect
       if (titleRef.current) {
@@ -95,31 +75,7 @@ export default function Hero() {
         )
       }
 
-      // Stats avec counter animation
-      if (statsRef.current && statsRef.current.children.length > 0) {
-        gsap.fromTo(statsRef.current.children,
-          { y: 30, opacity: 0, scale: 0.9 },
-          {
-            y: 0,
-            opacity: 1,
-            scale: 1,
-            duration: 0.8,
-            stagger: 0.1,
-            ease: 'back.out(1.2)',
-            delay: 0.8
-          }
-        )
-      }
-
-      // Floating animation pour les éléments décoratifs
-      gsap.to('.hero-decoration', {
-        y: -20,
-        duration: 3,
-        repeat: -1,
-        yoyo: true,
-        ease: 'power1.inOut',
-        stagger: 0.5
-      })
+      // Floating animation retirée pour un fond statique
     }, heroRef)
 
     return () => ctx.revert()
@@ -134,63 +90,17 @@ export default function Hero() {
         position: 'relative',
         minHeight: '90vh',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         overflow: 'hidden',
-        background: 'var(--gradient-dark-alt)',
-        paddingTop: '120px',
-        paddingBottom: '80px'
+        background: 'transparent',
+        paddingTop: 'calc(88px + 5vh)',
+        paddingBottom: '0px',
+        marginBottom: '-400px',
+        zIndex: 3
       }}
     >
-      {/* Background avec effet glass-morphism */}
-      <div
-        ref={backgroundRef}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: `
-            radial-gradient(circle at 20% 50%, rgba(251, 109, 37, 0.15) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(31, 46, 78, 0.3) 0%, transparent 50%),
-            var(--gradient-dark-alt)
-          `,
-          zIndex: 0
-        }}
-      />
 
-      {/* Éléments décoratifs animés */}
-      <div
-        className="hero-decoration"
-        style={{
-          position: 'absolute',
-          top: '20%',
-          left: '10%',
-          width: '200px',
-          height: '200px',
-          background: 'var(--gradient-orange-glow)',
-          borderRadius: '50%',
-          filter: 'blur(60px)',
-          opacity: 0.3,
-          zIndex: 1
-        }}
-      />
-      <div
-        className="hero-decoration"
-        style={{
-          position: 'absolute',
-          bottom: '20%',
-          right: '15%',
-          width: '150px',
-          height: '150px',
-          background: 'var(--gradient-orange-glow)',
-          borderRadius: '50%',
-          filter: 'blur(50px)',
-          opacity: 0.2,
-          zIndex: 1
-        }}
-      />
 
       <div className="container" style={{ position: 'relative', zIndex: 2 }}>
         <div className="hero-content" style={{ textAlign: 'center', maxWidth: '900px', margin: '0 auto' }}>
@@ -245,7 +155,9 @@ export default function Hero() {
                 gap: 'var(--spacing-md)',
                 justifyContent: 'center',
                 flexWrap: 'wrap',
-                marginBottom: 'var(--spacing-2xl)'
+                marginBottom: '0px',
+                position: 'relative',
+                zIndex: 10
               }}
             >
               <a 
@@ -307,67 +219,6 @@ export default function Hero() {
               </Link>
             </div>
 
-            {/* Stats rapides */}
-            <div 
-              ref={statsRef}
-              className="hero-stats"
-              style={{
-                display: 'flex',
-                gap: 'var(--spacing-xl)',
-                justifyContent: 'center',
-                flexWrap: 'wrap',
-                marginTop: 'var(--spacing-xl)',
-                paddingTop: 'var(--spacing-xl)',
-                borderTop: '1px solid var(--border-subtle)'
-              }}
-            >
-              {[
-                { number: '500+', label: 'Villes' },
-                { number: '5M+', label: 'Logements' },
-                { number: '-40%', label: 'Économies' }
-              ].map((stat, index) => (
-                <div
-                  key={index}
-                  className="stat-item"
-                  style={{
-                    textAlign: 'center'
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 'clamp(1.8rem, 3vw, 2.5rem)',
-                      fontWeight: 700,
-                      color: 'var(--orange-primary)',
-                      marginBottom: '4px',
-                      lineHeight: 1
-                    }}
-                  >
-                    {stat.number}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '0.9rem',
-                      color: 'var(--text-tertiary)',
-                      fontWeight: 500
-                    }}
-                  >
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <p 
-              className="hero-note" 
-              style={{ 
-                marginTop: 'var(--spacing-lg)', 
-                fontSize: '14px', 
-                color: 'var(--text-tertiary)', 
-                textAlign: 'center' 
-              }}
-            >
-              Cliquez sur le bouton ci-dessus pour explorer nos zones de distribution.
-            </p>
           </div>
         </div>
       </div>

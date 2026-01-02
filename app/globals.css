@@ -44,7 +44,7 @@
     --gradient-main: linear-gradient(135deg, #fb6d25 0%, #e85a1a 50%, #d44a0f 100%);
     --gradient-orange-glow: linear-gradient(135deg, rgba(251, 109, 37, 0.2) 0%, rgba(232, 90, 26, 0.1) 100%);
     --gradient-dark: radial-gradient(circle at top left, #0f0f15 0%, #0a0a0f 50%, #050508 100%);
-    --gradient-dark-alt: linear-gradient(145deg, #0a0a0f 0%, #08080c 50%, #050508 100%);
+    --gradient-dark-alt: radial-gradient(ellipse at center bottom, rgba(139, 69, 19, 0.15) 0%, rgba(80, 30, 10, 0.08) 30%, #0a0a0f 60%, #050508 100%);
     --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
     --gradient-card: linear-gradient(145deg, rgba(26, 26, 36, 0.8) 0%, rgba(19, 18, 20, 0.6) 100%);
     
@@ -227,7 +227,8 @@ a {
     left: 0;
     right: 0;
     height: 88px;
-    background: linear-gradient(135deg, #1F2E4E 0%, #131214 100%);
+    background: transparent;
+    backdrop-filter: blur(10px);
     z-index: 1000;
     box-shadow: var(--shadow-soft);
 }

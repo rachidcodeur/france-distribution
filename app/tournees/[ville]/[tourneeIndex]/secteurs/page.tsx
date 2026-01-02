@@ -74,10 +74,29 @@ export default function SecteursPage({
     // Ajouter aussi la version sans espaces
     keys.push(normalized.replace(/\s/g, ''))
     
-    // Ajouter la version avec seulement les mots significatifs (>= 3 caractères)
-    const words = normalized.split(/\s+/).filter(w => w.length >= 3)
+    // CORRECTION: Utiliser >= 2 caractères comme dans le stockage, pas >= 3
+    const words = normalized.split(/\s+/).filter(w => w.length >= 2)
     if (words.length > 0) {
       keys.push(words.join(' '))
+      keys.push(words.join(''))
+    }
+    
+    // Ajouter une version avec seulement le nom de base (sans le nombre) pour les IRIS numérotés
+    const wordsWithoutNumbers = words.filter(w => !/^\d+$/.test(w))
+    if (wordsWithoutNumbers.length > 0 && wordsWithoutNumbers.length < words.length) {
+      keys.push(wordsWithoutNumbers.join(' '))
+      keys.push(wordsWithoutNumbers.join(''))
+    }
+    
+    // Gérer les apostrophes : ajouter des variantes avec/sans apostrophe
+    if (name.includes("'")) {
+      const withoutApostrophe = normalized.replace(/'/g, '')
+      keys.push(withoutApostrophe)
+      keys.push(withoutApostrophe.replace(/\s/g, ''))
+      
+      const withSpace = normalized.replace(/'/g, ' ')
+      keys.push(withSpace)
+      keys.push(withSpace.replace(/\s+/g, ' ').trim())
     }
     
     return keys
@@ -259,13 +278,35 @@ export default function SecteursPage({
                 map.set(words.join(''), irisData.logements_iris)
               }
               
-              // 6. Code IRIS si disponible
+              // 6. Nom de base sans nombre (pour les IRIS numérotés comme "Chapelle 7")
+              const wordsWithoutNumbers = words.filter(w => !/^\d+$/.test(w))
+              if (wordsWithoutNumbers.length > 0 && wordsWithoutNumbers.length < words.length) {
+                map.set(wordsWithoutNumbers.join(' '), irisData.logements_iris)
+                map.set(wordsWithoutNumbers.join(''), irisData.logements_iris)
+              }
+              
+              // 7. Gérer les apostrophes : variantes avec/sans apostrophe
+              if (originalName.includes("'")) {
+                const withoutApostrophe = normalizedName.replace(/'/g, '')
+                map.set(withoutApostrophe, irisData.logements_iris)
+                map.set(withoutApostrophe.replace(/\s/g, ''), irisData.logements_iris)
+                
+                const withSpace = normalizedName.replace(/'/g, ' ')
+                map.set(withSpace.replace(/\s+/g, ' ').trim(), irisData.logements_iris)
+                
+                // Version originale avec apostrophe en minuscules
+                const originalLower = originalName.toLowerCase().trim()
+                map.set(originalLower, irisData.logements_iris)
+                map.set(originalLower.replace(/\s/g, ''), irisData.logements_iris)
+              }
+              
+              // 8. Code IRIS si disponible
               if (codeIris) {
                 map.set(codeIris.toString().toLowerCase().trim(), irisData.logements_iris)
                 map.set(codeIris.toString().trim(), irisData.logements_iris)
               }
               
-              // 7. Stocker le nom original comme référence (pour debug)
+              // 9. Stocker le nom original comme référence (pour debug)
               map.set(`_original_${originalName}`, irisData.logements_iris)
             }
           })
@@ -304,15 +345,51 @@ export default function SecteursPage({
 
         // Fonction pour détecter et extraire le code INSEE des arrondissements de Paris
         const getParisArrondissementCodeInsee = (name: string): string | null => {
-          const parisArrondissementMatch = name.match(/Paris\s+(\d+)(?:er|e|ème)?\s+Arrondissement/i)
+          // Pattern 1: "Paris 1er Arrondissement", "Paris 2e Arrondissement", etc.
+          let parisArrondissementMatch = name.match(/Paris\s+(\d+)(?:er|e|ème)?\s+Arrondissement/i)
+          
+          // Pattern 2: "1er arrondissement", "2e arrondissement", etc. (sans "Paris")
+          if (!parisArrondissementMatch) {
+            parisArrondissementMatch = name.match(/(\d+)(?:er|e|ème)?\s+arrondissement/i)
+          }
+          
+          // Pattern 3: "Paris 1", "Paris 2", etc.
+          if (!parisArrondissementMatch) {
+            parisArrondissementMatch = name.match(/Paris\s+(\d+)$/i)
+          }
+          
+          // Pattern 4: Juste un nombre (1, 2, 3, etc.) - vérifier si c'est dans le contexte de Paris
+          if (!parisArrondissementMatch && /^\d+(?:er|e|ème)?$/.test(name.trim())) {
+            const numMatch = name.match(/(\d+)/)
+            if (numMatch) {
+              parisArrondissementMatch = numMatch
+            }
+          }
+          
           if (parisArrondissementMatch) {
             const arrondissementNum = parseInt(parisArrondissementMatch[1], 10)
             if (arrondissementNum >= 1 && arrondissementNum <= 20) {
               // Code INSEE: 75101 à 75120
               const codeInsee = `751${arrondissementNum.toString().padStart(2, '0')}`
+              console.log(`✅ Arrondissement de Paris détecté: "${name}" -> ${arrondissementNum} -> Code INSEE: ${codeInsee}`)
               return codeInsee
             }
           }
+          
+          // Vérifier aussi si le nom contient "paris" et un numéro d'arrondissement
+          const nameLower = name.toLowerCase()
+          if (nameLower.includes('paris') || nameLower.includes('arrondissement')) {
+            const numMatch = name.match(/(\d+)/)
+            if (numMatch) {
+              const arrondissementNum = parseInt(numMatch[1], 10)
+              if (arrondissementNum >= 1 && arrondissementNum <= 20) {
+                const codeInsee = `751${arrondissementNum.toString().padStart(2, '0')}`
+                console.log(`✅ Arrondissement de Paris détecté (pattern alternatif): "${name}" -> ${arrondissementNum} -> Code INSEE: ${codeInsee}`)
+                return codeInsee
+              }
+            }
+          }
+          
           return null
         }
 
@@ -326,17 +403,29 @@ export default function SecteursPage({
           codeInsee = parisCodeInsee
           console.log(`Arrondissement de Paris détecté: ${villeName} -> Code INSEE: ${codeInsee}`)
           
-          // Récupérer les informations de la commune avec le code INSEE
+          // Pour les arrondissements de Paris, charger la commune "Paris" (75056) car les arrondissements
+          // n'ont pas de géométrie propre dans la base de données
           const communeResponse = await fetch(
-            `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/georef-france-commune/records?where=com_code%20%3D%20%22${codeInsee}%22&limit=1`
+            `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/georef-france-commune/records?where=com_code%20%3D%20%2275056%22&limit=1`
           )
+          
+          console.log(`🔍 Chargement de la commune Paris (75056) pour l'arrondissement ${villeName}`)
           
           if (communeResponse.ok) {
             const communeData = await communeResponse.json()
             if (communeData.results && communeData.results.length > 0) {
               foundCommune = communeData.results[0]
+              console.log(`✅ Commune Paris chargée:`, {
+                com_name: foundCommune.com_name,
+                com_code: foundCommune.com_code,
+                hasGeoShape: !!foundCommune.geo_shape
+              })
               setCommune(foundCommune)
+            } else {
+              console.warn(`⚠️ Aucune commune trouvée pour Paris (75056)`)
             }
+          } else {
+            console.warn(`⚠️ Erreur HTTP ${communeResponse.status} lors du chargement de la commune Paris`)
           }
         } else {
           // Pour les autres communes, rechercher par nom
@@ -367,34 +456,37 @@ export default function SecteursPage({
         
         // 3. Récupérer les IRIS directement depuis OpenDataSoft selon la procédure
         if (codeInsee) {
-          try {
-            // L'API OpenDataSoft limite à 100 résultats max, on fait plusieurs requêtes si nécessaire
-            // Utiliser code_commune selon la procédure ChatGPT
-            const irisUrl = `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/georef-france-iris/records?where=com_code%20%3D%20%22${codeInsee}%22&limit=100`
-            console.log(`🔍 Requête IRIS pour code INSEE: ${codeInsee}`)
-            console.log(`🔗 URL: ${irisUrl}`)
-            
-            const irisResponse = await fetch(irisUrl)
-            
-            console.log(`📡 Réponse IRIS - Status: ${irisResponse.status}, OK: ${irisResponse.ok}`)
-            
-            if (irisResponse.ok) {
-              const irisDataRaw = await irisResponse.json()
-              console.log(`📊 IRIS bruts reçus: ${irisDataRaw.results?.length || 0} résultats`)
-              console.log(`📊 Total count: ${irisDataRaw.total_count || 0}`)
-              console.log('🔍 Structure des données brutes:', {
-                hasResults: !!irisDataRaw.results,
-                resultsLength: irisDataRaw.results?.length,
-                firstItem: irisDataRaw.results?.[0] ? {
-                  hasGeoShape: !!irisDataRaw.results[0].geo_shape,
-                  geoShapeType: irisDataRaw.results[0].geo_shape?.type,
-                  irisCode: irisDataRaw.results[0].iris_code,
-                  irisName: irisDataRaw.results[0].iris_name,
-                  comCode: irisDataRaw.results[0].com_code
-                } : null
-              })
+          // Pour les arrondissements de Paris, passer directement à la logique de fallback
+          // car les IRIS sont stockés avec le code INSEE de Paris (75056), pas avec les codes des arrondissements
+          if (!parisCodeInsee) {
+            try {
+              // L'API OpenDataSoft limite à 100 résultats max, on fait plusieurs requêtes si nécessaire
+              // Utiliser code_commune selon la procédure ChatGPT
+              const irisUrl = `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/georef-france-iris/records?where=com_code%20%3D%20%22${codeInsee}%22&limit=100`
+              console.log(`🔍 Requête IRIS pour code INSEE: ${codeInsee}`)
+              console.log(`🔗 URL: ${irisUrl}`)
               
-              if (irisDataRaw.results && irisDataRaw.results.length > 0) {
+              const irisResponse = await fetch(irisUrl)
+              
+              console.log(`📡 Réponse IRIS - Status: ${irisResponse.status}, OK: ${irisResponse.ok}`)
+              
+              if (irisResponse.ok) {
+                const irisDataRaw = await irisResponse.json()
+                console.log(`📊 IRIS bruts reçus: ${irisDataRaw.results?.length || 0} résultats`)
+                console.log(`📊 Total count: ${irisDataRaw.total_count || 0}`)
+                console.log('🔍 Structure des données brutes:', {
+                  hasResults: !!irisDataRaw.results,
+                  resultsLength: irisDataRaw.results?.length,
+                  firstItem: irisDataRaw.results?.[0] ? {
+                    hasGeoShape: !!irisDataRaw.results[0].geo_shape,
+                    geoShapeType: irisDataRaw.results[0].geo_shape?.type,
+                    irisCode: irisDataRaw.results[0].iris_code,
+                    irisName: irisDataRaw.results[0].iris_name,
+                    comCode: irisDataRaw.results[0].com_code
+                  } : null
+                })
+                
+                if (irisDataRaw.results && irisDataRaw.results.length > 0) {
                 // Convertir en FeatureCollection selon la procédure
                 // Filtrer d'abord les IRIS "commune non irisée"
                 const validIrisResults = irisDataRaw.results.filter((item: any) => {
@@ -481,515 +573,359 @@ export default function SecteursPage({
                   console.warn('Aucune feature valide créée')
                   setIris(null)
                 }
+                }
               } else {
                 console.warn('Aucun IRIS trouvé pour cette commune')
-                // Si aucun résultat et que c'est un arrondissement de Paris, essayer les méthodes alternatives
-                if (parisCodeInsee) {
-                  console.log(`🔄 Aucun résultat avec com_code, tentative avec méthodes alternatives pour arrondissement de Paris...`)
-                  // Essayer l'API interne d'abord
-                  try {
-                    const apiResponse = await fetch(`/api/iris?codeInsee=${codeInsee}`)
-                    if (apiResponse.ok) {
-                      const apiData = await apiResponse.json()
-                      console.log(`✅ API interne: ${apiData.features?.length || 0} features trouvées`)
-                      if (apiData.features && apiData.features.length > 0) {
-                        setIris(apiData)
-                        console.log(`✅ ${apiData.features.length} IRIS chargés via API interne`)
-                        return
-                      }
-                    }
-                  } catch (apiError: any) {
-                    console.error('❌ Erreur API interne:', apiError.message)
-                  }
+                setIris(null)
+              }
+            } catch (error: any) {
+              console.error('Erreur lors de la récupération des IRIS:', error)
+              setError(error.message || 'Erreur lors de la récupération des IRIS')
+              setIris(null)
+            }
+          }
+          
+          // Logique spéciale pour les arrondissements de Paris
+          if (parisCodeInsee) {
+            console.log(`🔄 Arrondissement de Paris détecté: ${villeName} -> Code INSEE: ${codeInsee}`)
+            
+            const arrondissementNum = parseInt(parisCodeInsee.replace('751', ''), 10)
+            console.log(`🔍 Recherche IRIS pour arrondissement ${arrondissementNum} (code INSEE: ${codeInsee})`)
+            
+            // Charger directement tous les IRIS de Paris (75056) avec pagination
+            const allParisIris: any[] = []
+            let offset = 0
+            const limit = 100
+            let hasMore = true
+            
+            console.log(`🔄 Chargement des IRIS de Paris (75056) avec pagination...`)
+            
+            while (hasMore && offset < 2000) { // Limite de sécurité augmentée pour Paris
+              try {
+                const parisCodeUrl = `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/georef-france-iris/records?where=com_code%20%3D%20%2275056%22&limit=${limit}&offset=${offset}`
+                console.log(`🔍 Requête Paris (75056) offset ${offset}...`)
+                
+                const parisResponse = await fetch(parisCodeUrl)
+                if (parisResponse.ok) {
+                  const parisData = await parisResponse.json()
+                  const results = parisData.results || []
                   
-                  // Pour Paris, utiliser une recherche par nom de commune "Paris" et filtrer par arrondissement
-                  console.log(`🔄 Recherche de tous les IRIS de Paris...`)
-                  
-                  // Charger les noms d'IRIS depuis le fichier local pour cet arrondissement
-                  let localIrisNames: string[] = []
-                  try {
-                    const localDataResponse = await fetch('/api/iris-logements')
-                    if (localDataResponse.ok) {
-                      const localData = await localDataResponse.json()
-                      const villeLower = villeName.toLowerCase()
-                      const villeData = localData.find((item: any) => 
-                        item.ville && item.ville.toLowerCase() === villeLower
-                      )
-                      if (villeData && villeData.iris) {
-                        localIrisNames = villeData.iris
-                          .filter((iris: any) => {
-                            const nomIris = iris.nom_iris || ''
-                            return !nomIris.toLowerCase().includes('commune non irisée') && 
-                                   !nomIris.toLowerCase().includes('non irisée')
-                          })
-                          .map((iris: any) => iris.nom_iris?.toLowerCase() || '')
-                        console.log(`📋 ${localIrisNames.length} noms d'IRIS trouvés dans le fichier local`)
-                      }
-                    }
-                  } catch (localError: any) {
-                    console.warn('⚠️ Impossible de charger les données locales:', localError.message)
-                  }
-                  
-                  // Rechercher tous les IRIS de Paris avec plusieurs requêtes (pagination)
-                  const allParisIris: any[] = []
-                  let offset = 0
-                  const limit = 100
-                  let hasMore = true
-                  
-                  while (hasMore && offset < 1000) { // Limite de sécurité
-                    try {
-                      // Rechercher par nom de commune "Paris" (sans arrondissement)
-                      const parisSearchUrl = `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/georef-france-iris/records?where=com_name%20like%20%22Paris%22&limit=${limit}&offset=${offset}`
-                      console.log(`🔍 Requête Paris offset ${offset}...`)
-                      
-                      const parisResponse = await fetch(parisSearchUrl)
-                      if (parisResponse.ok) {
-                        const parisData = await parisResponse.json()
-                        const results = parisData.results || []
-                        
-                        if (results.length === 0) {
-                          hasMore = false
-                        } else {
-                          allParisIris.push(...results)
-                          offset += limit
-                          
-                          // Si on a moins de résultats que la limite, on a atteint la fin
-                          if (results.length < limit) {
-                            hasMore = false
-                          }
-                        }
-                      } else {
-                        console.warn(`⚠️ Erreur HTTP ${parisResponse.status} à l'offset ${offset}`)
-                        hasMore = false
-                      }
-                    } catch (err: any) {
-                      console.error(`❌ Erreur lors de la récupération offset ${offset}:`, err.message)
+                  if (results.length === 0) {
+                    hasMore = false
+                  } else {
+                    allParisIris.push(...results)
+                    offset += limit
+                    
+                    if (results.length < limit) {
                       hasMore = false
                     }
                   }
-                  
-                  console.log(`📊 Total IRIS de Paris récupérés: ${allParisIris.length}`)
-                  
-                  if (allParisIris.length > 0) {
-                    // Filtrer les IRIS qui correspondent à l'arrondissement
-                    const arrondissementNum = parseInt(parisCodeInsee.replace('751', ''), 10)
-                    console.log(`🔍 Filtrage pour arrondissement ${arrondissementNum}...`)
-                    
-                    const filteredResults = allParisIris.filter((item: any) => {
-                      const irisName = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
-                      const comCode = Array.isArray(item.com_code) ? item.com_code[0] : item.com_code
-                      
-                      // Vérifier si le code INSEE correspond à l'arrondissement
-                      if (comCode === codeInsee) {
-                        return true
-                      }
-                      
-                      // Si on a des noms locaux, vérifier la correspondance
-                      if (localIrisNames.length > 0 && irisName) {
-                        const irisNameLower = irisName.toLowerCase()
-                        if (localIrisNames.some(localName => 
-                          irisNameLower.includes(localName) || 
-                          localName.includes(irisNameLower.substring(0, 15))
-                        )) {
-                          return true
-                        }
-                      }
-                      
-                      return false
-                    })
-                    
-                    console.log(`📊 ${filteredResults.length} IRIS filtrés pour l'arrondissement`)
-                    
-                    if (filteredResults.length > 0) {
-                      const validIrisResults = filteredResults.filter((item: any) => {
-                        const name = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
-                        if (name && (name.toLowerCase().includes('commune non irisée') || 
-                                     name.toLowerCase().includes('non irisée'))) {
-                          return false
-                        }
-                        return true
-                      })
-                      
-                      const features = validIrisResults.map((item: any, index: number) => {
-                        try {
-                          const geoFeature = item.geo_shape
-                          if (!geoFeature) {
-                            console.warn(`⚠️ Item ${index}: pas de geo_shape`)
-                            return null
-                          }
-                          if (geoFeature.type !== 'Feature') {
-                            console.warn(`⚠️ Item ${index}: geo_shape n'est pas un Feature, type:`, geoFeature.type)
-                            return null
-                          }
-                          if (!geoFeature.geometry) {
-                            console.warn(`⚠️ Item ${index}: geo_shape n'a pas de geometry`)
-                            return null
-                          }
-                          
-                          const code = Array.isArray(item.iris_code) ? item.iris_code[0] : item.iris_code
-                          const name = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
-                          
-                          if (!code) {
-                            console.warn(`⚠️ Item ${index}: pas de code IRIS`)
-                            return null
-                          }
-                          
-                          // Log les premiers pour debug
-                          if (index < 3) {
-                            console.log(`📝 IRIS ${index}:`, {
-                              code,
-                              name,
-                              hasGeometry: !!geoFeature.geometry,
-                              geometryType: geoFeature.geometry?.type,
-                              hasCoordinates: !!geoFeature.geometry?.coordinates
-                            })
-                          }
-                          
-                          return {
-                            type: 'Feature',
-                            geometry: geoFeature.geometry,
-                            properties: {
-                              code_iris: code,
-                              nom_iris: name || code,
-                              code: code,
-                              name: name || code,
-                            },
-                          }
-                        } catch (err: any) {
-                          console.error(`❌ Item ${index}: erreur lors de la conversion:`, err.message)
-                          return null
-                        }
-                      }).filter((f: any) => f !== null)
-                      
-                      console.log(`📊 ${features.length} features valides créées sur ${validIrisResults.length} IRIS filtrés`)
-                      
-                      if (features.length > 0) {
-                        const irisFeatureCollection = {
-                          type: 'FeatureCollection',
-                          features: features,
-                        }
-                        
-                        console.log('✅ FeatureCollection créée:', {
-                          type: irisFeatureCollection.type,
-                          featuresCount: irisFeatureCollection.features.length,
-                          firstFeature: irisFeatureCollection.features[0] ? {
-                            type: irisFeatureCollection.features[0].type,
-                            hasGeometry: !!irisFeatureCollection.features[0].geometry,
-                            geometryType: irisFeatureCollection.features[0].geometry?.type,
-                            hasCoordinates: !!irisFeatureCollection.features[0].geometry?.coordinates,
-                            coordinatesLength: Array.isArray(irisFeatureCollection.features[0].geometry?.coordinates) 
-                              ? irisFeatureCollection.features[0].geometry.coordinates.length 
-                              : 'N/A',
-                            properties: irisFeatureCollection.features[0].properties
-                          } : null
-                        })
-                        
-                        // Vérifier que toutes les features ont des géométries valides
-                        const invalidFeatures = features.filter((f: any) => 
-                          !f.geometry || !f.geometry.type || !f.geometry.coordinates
-                        )
-                        if (invalidFeatures.length > 0) {
-                          console.warn(`⚠️ ${invalidFeatures.length} features avec géométries invalides`)
-                        }
-                        
-                        setIris(irisFeatureCollection)
-                        console.log(`✅ ${features.length} IRIS chargés pour l'arrondissement ${arrondissementNum} et assignés à setIris`)
-                        console.log('📦 Structure complète passée à setIris:', JSON.stringify(irisFeatureCollection).substring(0, 500))
-                        return
-                      } else {
-                        console.warn('⚠️ Aucune feature valide créée malgré le filtrage')
-                      }
-                    }
-                  }
-                  
-                  // Fallback: Essayer avec le code INSEE de Paris (75056) mais avec une limite plus petite
-                  console.log(`🔄 Tentative avec code INSEE de Paris (75056)...`)
-                  const parisCodeUrl = `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/georef-france-iris/records?where=com_code%20%3D%20%2275056%22&limit=100`
-                  console.log(`🔗 URL avec code Paris: ${parisCodeUrl}`)
-                  
-                  try {
-                    const parisResponse = await fetch(parisCodeUrl)
-                    if (parisResponse.ok) {
-                      const parisData = await parisResponse.json()
-                      console.log(`📊 IRIS de Paris (75056): ${parisData.results?.length || 0} résultats`)
-                      
-                      if (parisData.results && parisData.results.length > 0) {
-                        // Filtrer les IRIS qui correspondent à l'arrondissement
-                        // Les IRIS des arrondissements de Paris sont stockés avec com_code = 75056 (Paris)
-                        // mais on peut les identifier par leur code IRIS qui commence souvent par le code de l'arrondissement
-                        const arrondissementNum = parseInt(parisCodeInsee.replace('751', ''), 10)
-                        console.log(`🔍 Filtrage des IRIS pour arrondissement ${arrondissementNum} (code INSEE: ${codeInsee})`)
-                        
-                        // Charger les noms d'IRIS depuis le fichier local pour cet arrondissement
-                        let localIrisNames: string[] = []
-                        try {
-                          const localDataResponse = await fetch('/api/iris-logements')
-                          if (localDataResponse.ok) {
-                            const localData = await localDataResponse.json()
-                            const villeLower = villeName.toLowerCase()
-                            const villeData = localData.find((item: any) => 
-                              item.ville && item.ville.toLowerCase() === villeLower
-                            )
-                            if (villeData && villeData.iris) {
-                              localIrisNames = villeData.iris.map((iris: any) => 
-                                iris.nom_iris ? iris.nom_iris.toLowerCase() : ''
-                              )
-                              console.log(`📋 ${localIrisNames.length} noms d'IRIS trouvés dans le fichier local`)
-                            }
-                          }
-                        } catch (localError: any) {
-                          console.warn('⚠️ Impossible de charger les données locales:', localError.message)
-                        }
-                        
-                        const filteredResults = parisData.results.filter((item: any) => {
-                          const irisCode = Array.isArray(item.iris_code) ? item.iris_code[0] : item.iris_code
-                          const irisName = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
-                          const comCode = Array.isArray(item.com_code) ? item.com_code[0] : item.com_code
-                          
-                          // Si on a des noms locaux, utiliser la correspondance par nom
-                          if (localIrisNames.length > 0 && irisName) {
-                            const irisNameLower = irisName.toLowerCase()
-                            if (localIrisNames.some(localName => irisNameLower.includes(localName) || localName.includes(irisNameLower))) {
-                              return true
-                            }
-                          }
-                          
-                          // Vérifier si le code INSEE de l'IRIS correspond à l'arrondissement
-                          if (comCode === codeInsee) {
-                            return true
-                          }
-                          
-                          // Vérifier si le code IRIS commence par le code de l'arrondissement
-                          if (irisCode && irisCode.startsWith(codeInsee)) {
-                            return true
-                          }
-                          
-                          // Vérifier si le nom contient le numéro de l'arrondissement (format "10e", "10ème", etc.)
-                          if (irisName) {
-                            const irisNameLower = irisName.toLowerCase()
-                            // Chercher des patterns comme "10e", "10ème", "Xe arrondissement"
-                            const arrondPatterns = [
-                              `${arrondissementNum}e`,
-                              `${arrondissementNum}ème`,
-                              `${arrondissementNum} arrondissement`,
-                              `arrondissement ${arrondissementNum}`
-                            ]
-                            if (arrondPatterns.some(pattern => irisNameLower.includes(pattern))) {
-                              return true
-                            }
-                          }
-                          
-                          return false
-                        })
-                        
-                        console.log(`📊 IRIS filtrés pour arrondissement ${arrondissementNum}: ${filteredResults.length} résultats`)
-                        
-                        if (filteredResults.length > 0) {
-                          const validIrisResults = filteredResults.filter((item: any) => {
-                            const name = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
-                            if (name && (name.toLowerCase().includes('commune non irisée') || 
-                                         name.toLowerCase().includes('non irisée'))) {
-                              return false
-                            }
-                            return true
-                          })
-                          
-                          const features = validIrisResults.map((item: any, index: number) => {
-                            try {
-                              const geoFeature = item.geo_shape
-                              if (!geoFeature || geoFeature.type !== 'Feature' || !geoFeature.geometry) {
-                                return null
-                              }
-                              
-                              const code = Array.isArray(item.iris_code) ? item.iris_code[0] : item.iris_code
-                              const name = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
-                              
-                              if (!code) return null
-                              
-                              return {
-                                type: 'Feature',
-                                geometry: geoFeature.geometry,
-                                properties: {
-                                  code_iris: code,
-                                  nom_iris: name || code,
-                                  code: code,
-                                  name: name || code,
-                                },
-                              }
-                            } catch (err: any) {
-                              return null
-                            }
-                          }).filter((f: any) => f !== null)
-                          
-                          if (features.length > 0) {
-                            setIris({
-                              type: 'FeatureCollection',
-                              features: features,
-                            })
-                            console.log(`✅ ${features.length} IRIS chargés via code Paris (75056)`)
-                            return
-                          }
-                        }
-                      }
-                    }
-                  } catch (parisError: any) {
-                    console.error('❌ Erreur avec code Paris:', parisError.message)
-                  }
-                  
-                  // Essayer une recherche par nom
-                  console.log(`🔄 Tentative alternative par nom pour arrondissement de Paris...`)
-                  const alternativeUrl = `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/georef-france-iris/records?where=com_name%20like%20%22${encodeURIComponent(villeName)}%22&limit=100`
-                  console.log(`🔗 URL alternative: ${alternativeUrl}`)
-                  
-                  try {
-                    const altResponse = await fetch(alternativeUrl)
-                    if (altResponse.ok) {
-                      const altData = await altResponse.json()
-                      console.log(`✅ Alternative: ${altData.results?.length || 0} résultats trouvés`)
-                      if (altData.results && altData.results.length > 0) {
-                        // Traiter les résultats de la même manière
-                        const validIrisResults = altData.results.filter((item: any) => {
-                          const name = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
-                          if (name && (name.toLowerCase().includes('commune non irisée') || 
-                                       name.toLowerCase().includes('non irisée'))) {
-                            return false
-                          }
-                          return true
-                        })
-                        
-                        const features = validIrisResults.map((item: any, index: number) => {
-                          try {
-                            const geoFeature = item.geo_shape
-                            if (!geoFeature || geoFeature.type !== 'Feature' || !geoFeature.geometry) {
-                              return null
-                            }
-                            
-                            const code = Array.isArray(item.iris_code) ? item.iris_code[0] : item.iris_code
-                            const name = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
-                            
-                            if (!code) return null
-                            
-                            return {
-                              type: 'Feature',
-                              geometry: geoFeature.geometry,
-                              properties: {
-                                code_iris: code,
-                                nom_iris: name || code,
-                                code: code,
-                                name: name || code,
-                              },
-                            }
-                          } catch (err: any) {
-                            return null
-                          }
-                        }).filter((f: any) => f !== null)
-                        
-                        if (features.length > 0) {
-                          setIris({
-                            type: 'FeatureCollection',
-                            features: features,
-                          })
-                          console.log(`✅ ${features.length} IRIS chargés via méthode alternative`)
-                          return
-                        }
-                      }
-                    }
-                  } catch (altError: any) {
-                    console.error('❌ Erreur méthode alternative:', altError.message)
-                  }
+                } else {
+                  console.warn(`⚠️ Erreur HTTP ${parisResponse.status} à l'offset ${offset}`)
+                  hasMore = false
                 }
-                setIris(null)
+              } catch (err: any) {
+                console.error(`❌ Erreur lors de la récupération offset ${offset}:`, err.message)
+                hasMore = false
+              }
+            }
+            
+            console.log(`📊 Total IRIS de Paris (75056) récupérés: ${allParisIris.length}`)
+            
+            if (allParisIris.length > 0) {
+              // Filtrer les IRIS qui correspondent à l'arrondissement par code IRIS
+              const codeInseeStr = String(codeInsee).trim()
+              console.log(`🔍 Filtrage des IRIS pour code INSEE: ${codeInseeStr}...`)
+              
+              const filteredResults = allParisIris.filter((item: any) => {
+                const irisCode = Array.isArray(item.iris_code) ? item.iris_code[0] : item.iris_code
+                const irisName = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
+                
+                // Convertir le code IRIS en string pour la comparaison
+                const irisCodeStr = irisCode ? String(irisCode).trim() : ''
+                
+                // CRITÈRE PRINCIPAL : Vérifier si le code IRIS commence par le code INSEE de l'arrondissement
+                // Les codes IRIS de Paris sont formatés comme : 7510101, 7510102, etc. pour le 1er arrondissement (75101)
+                if (irisCodeStr && irisCodeStr.startsWith(codeInseeStr)) {
+                  console.log(`✅ IRIS correspond: ${irisName} (${irisCodeStr}) commence par ${codeInseeStr}`)
+                  return true
+                }
+                
+                return false
+              })
+              
+              console.log(`📊 ${filteredResults.length} IRIS filtrés pour l'arrondissement ${arrondissementNum}`)
+              
+              if (filteredResults.length > 0) {
+                const validIrisResults = filteredResults.filter((item: any) => {
+                  const name = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
+                  if (name && (name.toLowerCase().includes('commune non irisée') || 
+                               name.toLowerCase().includes('non irisée'))) {
+                    return false
+                  }
+                  return true
+                })
+                
+                console.log(`📊 ${validIrisResults.length} IRIS valides après filtrage des "non irisées"`)
+                
+                const features = validIrisResults.map((item: any, index: number) => {
+                  try {
+                    const geoFeature = item.geo_shape
+                    if (!geoFeature) {
+                      console.warn(`⚠️ Item ${index}: pas de geo_shape`)
+                      return null
+                    }
+                    if (geoFeature.type !== 'Feature') {
+                      console.warn(`⚠️ Item ${index}: geo_shape n'est pas un Feature, type:`, geoFeature.type)
+                      return null
+                    }
+                    if (!geoFeature.geometry) {
+                      console.warn(`⚠️ Item ${index}: geo_shape n'a pas de geometry`)
+                      return null
+                    }
+                    
+                    const code = Array.isArray(item.iris_code) ? item.iris_code[0] : item.iris_code
+                    const name = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
+                    
+                    if (!code) {
+                      console.warn(`⚠️ Item ${index}: pas de code IRIS`)
+                      return null
+                    }
+                    
+                    // Log les premiers pour debug
+                    if (index < 3) {
+                      console.log(`📝 IRIS ${index}:`, {
+                        code,
+                        name,
+                        hasGeometry: !!geoFeature.geometry,
+                        geometryType: geoFeature.geometry?.type,
+                        hasCoordinates: !!geoFeature.geometry?.coordinates
+                      })
+                    }
+                    
+                    return {
+                      type: 'Feature',
+                      geometry: geoFeature.geometry,
+                      properties: {
+                        code_iris: code,
+                        nom_iris: name || code,
+                        code: code,
+                        name: name || code,
+                        // Ajouter aussi les propriétés originales si disponibles
+                        ...(item.iris_code && { iris_code: item.iris_code }),
+                        ...(item.iris_name && { iris_name: item.iris_name }),
+                      },
+                    }
+                  } catch (err: any) {
+                    console.error(`❌ Item ${index}: erreur lors de la conversion:`, err.message)
+                    return null
+                  }
+                }).filter((f: any) => f !== null)
+                
+                console.log(`📊 ${features.length} features valides créées sur ${validIrisResults.length} IRIS filtrés`)
+                
+                // Vérifier que toutes les features ont des géométries valides
+                const featuresWithGeometry = features.filter((f: any) => 
+                  f.geometry && f.geometry.type && f.geometry.coordinates
+                )
+                console.log(`📊 ${featuresWithGeometry.length} features avec géométrie valide sur ${features.length} total`)
+                
+                if (features.length > 0) {
+                  const irisFeatureCollection = {
+                    type: 'FeatureCollection',
+                    features: featuresWithGeometry.length > 0 ? featuresWithGeometry : features,
+                  }
+                  
+                  console.log('✅ FeatureCollection créée:', {
+                    type: irisFeatureCollection.type,
+                    featuresCount: irisFeatureCollection.features.length,
+                    firstFeature: irisFeatureCollection.features[0] ? {
+                      type: irisFeatureCollection.features[0].type,
+                      hasGeometry: !!irisFeatureCollection.features[0].geometry,
+                      geometryType: irisFeatureCollection.features[0].geometry?.type,
+                      hasCoordinates: !!irisFeatureCollection.features[0].geometry?.coordinates,
+                      coordinatesLength: Array.isArray(irisFeatureCollection.features[0].geometry?.coordinates) 
+                        ? irisFeatureCollection.features[0].geometry.coordinates.length 
+                        : 'N/A',
+                      properties: irisFeatureCollection.features[0].properties
+                    } : null
+                  })
+                  
+                  if (featuresWithGeometry.length === 0) {
+                    console.error('❌ AUCUNE FEATURE AVEC GÉOMÉTRIE VALIDE!')
+                  }
+                  
+                  setIris(irisFeatureCollection)
+                  console.log(`✅ ${features.length} IRIS chargés pour l'arrondissement ${arrondissementNum} et assignés à setIris`)
+                  return
+                } else {
+                  console.warn('⚠️ Aucune feature valide créée malgré le filtrage')
+                }
+              } else {
+                console.warn(`⚠️ Aucun IRIS trouvé pour l'arrondissement ${arrondissementNum} avec le code INSEE ${codeInseeStr}`)
               }
             } else {
-              const errorText = await irisResponse.text()
-              console.error(`❌ Erreur lors du chargement des IRIS - Status: ${irisResponse.status}`)
-              console.error(`❌ Réponse: ${errorText.substring(0, 500)}`)
-              
-              // Pour les arrondissements de Paris, essayer l'API interne
-              if (parisCodeInsee) {
-                console.log(`🔄 Tentative avec API interne pour arrondissement de Paris...`)
-                try {
-                  const apiResponse = await fetch(`/api/iris?codeInsee=${codeInsee}`)
-                  if (apiResponse.ok) {
-                    const apiData = await apiResponse.json()
-                    console.log(`✅ API interne: ${apiData.features?.length || 0} features trouvées`)
-                    if (apiData.features && apiData.features.length > 0) {
-                      setIris(apiData)
-                      console.log(`✅ ${apiData.features.length} IRIS chargés via API interne`)
-                      return
-                    }
-                  }
-                } catch (apiError: any) {
-                  console.error('❌ Erreur API interne:', apiError.message)
-                }
-                
-                // Si l'API interne ne fonctionne pas, essayer une recherche par nom
-                console.log(`🔄 Tentative alternative par nom pour arrondissement de Paris...`)
-                const alternativeUrl = `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/georef-france-iris/records?where=com_name%20like%20%22${encodeURIComponent(villeName)}%22&limit=100`
-                console.log(`🔗 URL alternative: ${alternativeUrl}`)
-                
-                try {
-                  const altResponse = await fetch(alternativeUrl)
-                  if (altResponse.ok) {
-                    const altData = await altResponse.json()
-                    console.log(`✅ Alternative: ${altData.results?.length || 0} résultats trouvés`)
-                    if (altData.results && altData.results.length > 0) {
-                      // Traiter les résultats de la même manière
-                      const validIrisResults = altData.results.filter((item: any) => {
-                        const name = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
-                        if (name && (name.toLowerCase().includes('commune non irisée') || 
-                                     name.toLowerCase().includes('non irisée'))) {
-                          return false
-                        }
-                        return true
-                      })
-                      
-                      const features = validIrisResults.map((item: any, index: number) => {
-                        try {
-                          const geoFeature = item.geo_shape
-                          if (!geoFeature || geoFeature.type !== 'Feature' || !geoFeature.geometry) {
-                            return null
-                          }
-                          
-                          const code = Array.isArray(item.iris_code) ? item.iris_code[0] : item.iris_code
-                          const name = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
-                          
-                          if (!code) return null
-                          
-                          return {
-                            type: 'Feature',
-                            geometry: geoFeature.geometry,
-                            properties: {
-                              code_iris: code,
-                              nom_iris: name || code,
-                              code: code,
-                              name: name || code,
-                            },
-                          }
-                        } catch (err: any) {
-                          return null
-                        }
-                      }).filter((f: any) => f !== null)
-                      
-                      if (features.length > 0) {
-                        setIris({
-                          type: 'FeatureCollection',
-                          features: features,
-                        })
-                        console.log(`✅ ${features.length} IRIS chargés via méthode alternative`)
-                        return
-                      }
-                    }
-                  }
-                } catch (altError: any) {
-                  console.error('❌ Erreur méthode alternative:', altError.message)
+              console.warn(`⚠️ Aucun IRIS de Paris récupéré depuis l'API`)
+            }
+            
+            // Fallback: Essayer avec le code INSEE de Paris (75056) avec pagination
+            console.log(`🔄 Tentative avec code INSEE de Paris (75056) avec pagination...`)
+            
+            // Charger les noms d'IRIS depuis le fichier local d'abord
+            let localIrisNamesFallback: string[] = []
+            try {
+              const localDataResponse = await fetch('/api/iris-logements')
+              if (localDataResponse.ok) {
+                const localData = await localDataResponse.json()
+                const villeLower = villeName.toLowerCase()
+                const villeData = localData.find((item: any) => 
+                  item.ville && item.ville.toLowerCase() === villeLower
+                )
+                if (villeData && villeData.iris) {
+                  localIrisNamesFallback = villeData.iris
+                    .filter((iris: any) => {
+                      const nomIris = iris.nom_iris || ''
+                      return !nomIris.toLowerCase().includes('commune non irisée') && 
+                             !nomIris.toLowerCase().includes('non irisée')
+                    })
+                    .map((iris: any) => iris.nom_iris?.toLowerCase() || '')
+                  console.log(`📋 ${localIrisNamesFallback.length} noms d'IRIS trouvés dans le fichier local (fallback)`)
                 }
               }
-              
-              setIris(null)
+            } catch (localError: any) {
+              console.warn('⚠️ Impossible de charger les données locales:', localError.message)
             }
-          } catch (irisError: any) {
-            console.error('Erreur lors du chargement des IRIS:', irisError.message)
+            
+            const arrondissementNumFallback = parseInt(parisCodeInsee.replace('751', ''), 10)
+            console.log(`🔍 Recherche IRIS pour arrondissement ${arrondissementNumFallback} (code INSEE: ${codeInsee})`)
+            
+            // Charger tous les IRIS de Paris avec pagination
+            const allParisIrisFallback: any[] = []
+            let offsetFallback = 0
+            const limitFallback = 100
+            let hasMoreFallback = true
+            
+            while (hasMoreFallback && offsetFallback < 500) { // Limite de sécurité
+              try {
+                const parisCodeUrl = `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/georef-france-iris/records?where=com_code%20%3D%20%2275056%22&limit=${limitFallback}&offset=${offsetFallback}`
+                console.log(`🔍 Requête Paris (75056) offset ${offsetFallback}...`)
+                
+                const parisResponse = await fetch(parisCodeUrl)
+                if (parisResponse.ok) {
+                  const parisData = await parisResponse.json()
+                  const results = parisData.results || []
+                  
+                  if (results.length === 0) {
+                    hasMoreFallback = false
+                  } else {
+                    allParisIrisFallback.push(...results)
+                    offsetFallback += limitFallback
+                    
+                    if (results.length < limitFallback) {
+                      hasMoreFallback = false
+                    }
+                  }
+                } else {
+                  console.warn(`⚠️ Erreur HTTP ${parisResponse.status} à l'offset ${offsetFallback}`)
+                  hasMoreFallback = false
+                }
+              } catch (err: any) {
+                console.error(`❌ Erreur lors de la récupération offset ${offsetFallback}:`, err.message)
+                hasMoreFallback = false
+              }
+            }
+            
+            console.log(`📊 Total IRIS de Paris (75056) récupérés: ${allParisIrisFallback.length}`)
+            
+            if (allParisIrisFallback.length > 0) {
+              const filteredResults = allParisIrisFallback.filter((item: any) => {
+                const irisCode = Array.isArray(item.iris_code) ? item.iris_code[0] : item.iris_code
+                const irisName = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
+                
+                // Convertir le code IRIS en string pour la comparaison
+                const irisCodeStr = irisCode ? String(irisCode).trim() : ''
+                const codeInseeStr = String(codeInsee).trim()
+                
+                // CRITÈRE PRINCIPAL : Vérifier si le code IRIS commence par le code INSEE de l'arrondissement
+                // Les codes IRIS de Paris sont formatés comme : 7510101, 7510102, etc. pour le 1er arrondissement (75101)
+                if (irisCodeStr && irisCodeStr.startsWith(codeInseeStr)) {
+                  console.log(`✅ IRIS correspond par irisCode (fallback): ${irisName} (${irisCodeStr}) commence par ${codeInseeStr}`)
+                  return true
+                }
+                
+                // Si on a des noms locaux, vérifier la correspondance
+                if (localIrisNamesFallback.length > 0 && irisName) {
+                  const irisNameLower = irisName.toLowerCase()
+                  if (localIrisNamesFallback.some(localName => {
+                    const localNameLower = localName.toLowerCase()
+                    return irisNameLower.includes(localNameLower) || 
+                           localNameLower.includes(irisNameLower.substring(0, 20)) ||
+                           irisNameLower.includes(localNameLower.substring(0, 20))
+                  })) {
+                    console.log(`✅ IRIS correspond par nom local (fallback): ${irisName}`)
+                    return true
+                  }
+                }
+                
+                return false
+              })
+              
+              console.log(`📊 ${filteredResults.length} IRIS filtrés pour l'arrondissement ${arrondissementNumFallback}`)
+              
+              if (filteredResults.length > 0) {
+                const validIrisResults = filteredResults.filter((item: any) => {
+                  const name = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
+                  if (name && (name.toLowerCase().includes('commune non irisée') || 
+                               name.toLowerCase().includes('non irisée'))) {
+                    return false
+                  }
+                  return true
+                })
+                
+                const features = validIrisResults.map((item: any, index: number) => {
+                  try {
+                    const geoFeature = item.geo_shape
+                    if (!geoFeature || geoFeature.type !== 'Feature' || !geoFeature.geometry) {
+                      return null
+                    }
+                    
+                    const code = Array.isArray(item.iris_code) ? item.iris_code[0] : item.iris_code
+                    const name = Array.isArray(item.iris_name) ? item.iris_name[0] : item.iris_name
+                    
+                    if (!code) return null
+                    
+                    return {
+                      type: 'Feature',
+                      geometry: geoFeature.geometry,
+                      properties: {
+                        code_iris: code,
+                        nom_iris: name || code,
+                        code: code,
+                        name: name || code,
+                      },
+                    }
+                  } catch (err: any) {
+                    return null
+                  }
+                }).filter((f: any) => f !== null)
+                
+                console.log(`📊 ${features.length} features valides créées sur ${validIrisResults.length} IRIS filtrés`)
+                
+                if (features.length > 0) {
+                  const irisFeatureCollection = {
+                    type: 'FeatureCollection',
+                    features: features,
+                  }
+                  
+                  setIris(irisFeatureCollection)
+                  console.log(`✅ ${features.length} IRIS chargés via code Paris (75056) pour l'arrondissement ${arrondissementNumFallback}`)
+                  return
+                }
+              }
+            }
+            
+            // Si aucune méthode n'a fonctionné, afficher un message d'erreur
+            console.warn(`⚠️ Aucun IRIS trouvé pour l'arrondissement de Paris: ${villeName}`)
             setIris(null)
           }
         }
@@ -1199,25 +1135,232 @@ export default function SecteursPage({
            irisCode
   }, [iris])
 
-  const calculateIrisLogements = useCallback((irisName: string, irisCode?: string): number => {
-    if (irisLogementsMap.size === 0) return 0
+  const calculateIrisLogements = useCallback((irisName: string, irisCode?: string, properties?: any): number => {
+    // D'abord, vérifier si les logements sont directement dans les propriétés
+    if (properties) {
+      const directLogements = properties.logements || properties.logements_iris || properties.logementsIris
+      if (directLogements && !isNaN(Number(directLogements))) {
+        const logementsValue = Number(directLogements)
+        if (logementsValue > 0) {
+          console.log(`✅ Logements trouvés directement dans les propriétés: ${logementsValue}`)
+          return logementsValue
+        }
+      }
+    }
+    
+    if (irisLogementsMap.size === 0) {
+      console.warn(`⚠️ irisLogementsMap est vide pour ${irisName} (code: ${irisCode})`)
+      return 0
+    }
     
     const normalizedName = normalizeName(irisName)
     const lowerName = irisName.toLowerCase().trim()
+    
+    console.log(`🔍 calculateIrisLogements - Recherche pour:`, {
+      irisName,
+      normalizedName,
+      lowerName,
+      irisCode,
+      mapSize: irisLogementsMap.size,
+      hasNormalizedName: irisLogementsMap.has(normalizedName),
+      hasLowerName: irisLogementsMap.has(lowerName),
+      sampleKeys: Array.from(irisLogementsMap.keys()).filter(k => !k.startsWith('_original_')).slice(0, 10)
+    })
+    
     let logements = irisLogementsMap.get(normalizedName) || irisLogementsMap.get(lowerName) || 0
     
-    // Essayer aussi avec le code IRIS si disponible
-    if (logements === 0 && irisCode) {
-      logements = irisLogementsMap.get(irisCode.toLowerCase().trim()) || irisLogementsMap.get(irisCode.trim()) || 0
+    // Si pas trouvé, essayer avec le nom sans accents ni caractères spéciaux
+    if (logements === 0) {
+      const nameWithoutAccents = irisName
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+      logements = irisLogementsMap.get(nameWithoutAccents) || 0
+      if (logements > 0) {
+        console.log(`✅ Logements trouvés avec nom sans accents: ${nameWithoutAccents} = ${logements}`)
+      }
     }
     
-    // Si pas trouvé, essayer de chercher par fuzzy matching
+    // Si pas trouvé, essayer avec le nom sans espaces
+    if (logements === 0) {
+      const nameNoSpaces = normalizedName.replace(/\s/g, '')
+      logements = irisLogementsMap.get(nameNoSpaces) || 0
+      if (logements > 0) {
+        console.log(`✅ Logements trouvés avec nom sans espaces: ${nameNoSpaces} = ${logements}`)
+      }
+    }
+    
+    // Recherche spéciale pour les noms avec apostrophes (ex: "Goutte d'Or 8")
+    if (logements === 0 && irisName.includes("'")) {
+      console.log(`🔍 Recherche spéciale pour nom avec apostrophe: "${irisName}"`)
+      
+      // Essayer avec l'apostrophe remplacée par un espace
+      const nameWithSpace = irisName.replace(/'/g, ' ')
+      const normalizedWithSpace = normalizeName(nameWithSpace)
+      logements = irisLogementsMap.get(normalizedWithSpace) || 0
+      if (logements > 0) {
+        console.log(`✅ Logements trouvés avec apostrophe remplacée par espace: ${logements}`)
+      }
+      
+      // Essayer sans apostrophe (déjà fait par normalizeName, mais essayer aussi directement)
+      if (logements === 0) {
+        const nameWithoutApostrophe = irisName.replace(/'/g, '')
+        const normalizedWithoutApostrophe = normalizeName(nameWithoutApostrophe)
+        logements = irisLogementsMap.get(normalizedWithoutApostrophe) || 0
+        if (logements > 0) {
+          console.log(`✅ Logements trouvés sans apostrophe: ${logements}`)
+        }
+      }
+      
+      // Recherche par mots significatifs pour les noms avec apostrophes
+      if (logements === 0) {
+        // AMÉLIORATION: Utiliser >= 2 caractères au lieu de >= 3 pour capturer "dor" dans "Goutte d'Or"
+        const significantWords = irisName
+          .toLowerCase()
+          .replace(/'/g, ' ')
+          .split(/\s+/)
+          .filter(w => w.length >= 2 && !/^\d+$/.test(w)) // Exclure les nombres seuls, mais garder les mots de 2 caractères
+        
+        console.log(`   Mots significatifs extraits (>= 2 caractères):`, significantWords)
+        
+        if (significantWords.length >= 1) {
+          // Chercher dans toutes les clés qui contiennent au moins un mot significatif
+          for (const [key, value] of Array.from(irisLogementsMap.entries())) {
+            if (key.startsWith('_original_')) continue
+            
+            const keyLower = key.toLowerCase()
+            const matchingWords = significantWords.filter(word => 
+              keyLower.includes(word) || word.includes(keyLower.substring(0, Math.min(word.length, keyLower.length)))
+            )
+            
+            // Si au moins 50% des mots correspondent OU si on a au moins 2 mots qui correspondent
+            const matchRatio = matchingWords.length / significantWords.length
+            if (matchRatio >= 0.5 || (significantWords.length >= 2 && matchingWords.length >= 2)) {
+              console.log(`✅ Match trouvé par mots significatifs avec apostrophe: "${key}" = ${value} (${matchingWords.length}/${significantWords.length} mots)`)
+              logements = value
+              break
+            }
+          }
+        }
+      }
+    }
+    
+    // Recherche spéciale pour les noms avec nombres (ex: "Chapelle 7")
+    if (logements === 0 && /\d/.test(irisName)) {
+      console.log(`🔍 Recherche spéciale pour nom avec nombre: "${irisName}"`)
+      
+      // Extraire le nom de base (sans le nombre à la fin)
+      const baseName = irisName.replace(/\s*\d+\s*$/, '').trim()
+      const normalizedBaseName = normalizeName(baseName)
+      const numberInName = irisName.match(/\d+/)?.[0]
+      
+      // Chercher toutes les clés qui commencent par le nom de base
+      for (const [key, value] of Array.from(irisLogementsMap.entries())) {
+        if (key.startsWith('_original_')) continue
+        
+        const keyLower = key.toLowerCase()
+        // Si la clé commence par le nom de base (ex: "chapelle" pour "chapelle 7")
+        if (keyLower.startsWith(normalizedBaseName) || normalizedBaseName.startsWith(keyLower.substring(0, Math.min(normalizedBaseName.length, keyLower.length)))) {
+          // Vérifier que c'est bien le même IRIS en comparant le nombre
+          const numberInKey = key.match(/\d+/)?.[0]
+          
+          // Si les nombres correspondent OU si on n'a pas de nombre dans la clé mais que le nom de base correspond bien
+          if (!numberInKey || numberInKey === numberInName) {
+            // Vérifier que le nom de base correspond vraiment (pas juste une sous-chaîne)
+            const keyWords = keyLower.split(/\s+/).filter(w => w.length >= 2)
+            const baseWords = normalizedBaseName.split(/\s+/).filter(w => w.length >= 2)
+            const matchingBaseWords = baseWords.filter(bw => 
+              keyWords.some(kw => kw === bw || kw.startsWith(bw) || bw.startsWith(kw))
+            )
+            
+            // Si au moins 50% des mots de base correspondent
+            if (matchingBaseWords.length >= Math.ceil(baseWords.length * 0.5)) {
+              console.log(`✅ Match trouvé par nom de base avec nombre: "${key}" = ${value} (nombre: ${numberInKey || 'N/A'})`)
+              logements = value
+              break
+            }
+          }
+        }
+      }
+    }
+    
+    // Essayer aussi avec le code IRIS si disponible (plusieurs variantes)
+    if (logements === 0 && irisCode) {
+      const codeStr = String(irisCode).trim()
+      const codeVariants = [
+        codeStr.toLowerCase(),
+        codeStr,
+        codeStr.replace(/\s/g, ''),
+        codeStr.toLowerCase().replace(/\s/g, ''),
+        codeStr.padStart(9, '0'), // Code INSEE formaté avec zéros
+        codeStr.padStart(5, '0'), // Code IRIS formaté
+        // Pour les codes Paris (75110xxx), essayer aussi les 6 derniers chiffres
+        codeStr.length > 6 ? codeStr.substring(5) : codeStr,
+        codeStr.length > 6 ? codeStr.substring(5).toLowerCase() : codeStr.toLowerCase(),
+      ]
+      
+      console.log(`🔍 Recherche dans irisLogementsMap avec code IRIS: ${codeStr}`)
+      console.log(`   Variantes testées:`, codeVariants)
+      
+      for (const variant of codeVariants) {
+        const found = irisLogementsMap.get(variant)
+        if (found && found > 0) {
+          console.log(`✅ Logements trouvés avec variante de code: "${variant}" = ${found}`)
+          logements = found
+          break
+        }
+      }
+      
+      // Si toujours pas trouvé, chercher par sous-chaîne dans toutes les clés qui contiennent le code
+      if (logements === 0) {
+        console.log(`   Recherche par sous-chaîne du code dans toutes les clés...`)
+        const codeSearch = codeStr.toLowerCase()
+        const codeSearchParts = [
+          codeSearch.substring(0, 6), // Premiers 6 chiffres (751103)
+          codeSearch.substring(5), // Derniers chiffres (3701)
+          codeSearch.substring(5, 7), // 2 premiers chiffres après 75110 (37)
+        ]
+        
+        for (const [key, value] of Array.from(irisLogementsMap.entries())) {
+          if (key.startsWith('_original_')) continue
+          const keyLower = key.toLowerCase()
+          for (const part of codeSearchParts) {
+            if (keyLower.includes(part) || part.includes(keyLower)) {
+              if (value > 0) {
+                console.log(`✅ Logements trouvés par sous-chaîne de code "${part}" dans clé "${key}": ${value}`)
+                logements = value
+                break
+              }
+            }
+          }
+          if (logements > 0) break
+        }
+      }
+      
+      if (logements === 0) {
+        // Afficher quelques exemples de clés dans la map pour debug
+        const mapKeys = Array.from(irisLogementsMap.keys()).filter(k => !k.startsWith('_original_'))
+        const codeKeys = mapKeys.filter(k => k.includes(codeStr.substring(0, 5)) || k.includes(codeStr.substring(5)))
+        console.log(`   Aucune correspondance trouvée. Exemples de clés dans la map (${mapKeys.length} total):`, mapKeys.slice(0, 10))
+        if (codeKeys.length > 0) {
+          console.log(`   Clés similaires trouvées:`, codeKeys.slice(0, 5))
+        }
+      }
+    }
+    
+    // Si pas trouvé, essayer de chercher par fuzzy matching avec le nom
     if (logements === 0 && irisLogementsMap.size > 0) {
+      console.log(`🔍 Tentative de fuzzy matching avec le nom: "${irisName}"`)
+      
       // Créer des clés de recherche pour l'IRIS sélectionné
       const searchKeys = createSearchKey(irisName)
+      console.log(`   Clés de recherche créées:`, searchKeys)
       
       // Chercher dans toutes les clés de la map
       const mapEntries = Array.from(irisLogementsMap.entries())
+      let bestMatch: { key: string; value: number; score: number } | null = null
+      
       for (const [key, value] of mapEntries) {
         // Ignorer les clés de référence
         if (key.startsWith('_original_')) continue
@@ -1231,34 +1374,150 @@ export default function SecteursPage({
           if (keyNormalized === searchKeyNormalized || 
               keyNormalized === searchKey || 
               key === searchKey) {
+            console.log(`✅ Correspondance exacte trouvée: "${key}" = ${value}`)
             logements = value
             break
           }
           
           // Correspondance sans espaces
           if (keyNormalized.replace(/\s/g, '') === searchKeyNormalized.replace(/\s/g, '')) {
+            console.log(`✅ Correspondance sans espaces trouvée: "${key}" = ${value}`)
             logements = value
             break
           }
           
-          // Correspondance par mots significatifs (>= 3 caractères)
-          const keyWords = keyNormalized.split(/\s+/).filter(w => w.length >= 3)
-          const searchWords = searchKeyNormalized.split(/\s+/).filter(w => w.length >= 3)
+          // Correspondance par sous-chaîne (si le nom de l'IRIS contient la clé ou vice versa)
+          if (keyNormalized.includes(searchKeyNormalized) || searchKeyNormalized.includes(keyNormalized)) {
+            const matchLength = Math.min(keyNormalized.length, searchKeyNormalized.length)
+            const maxLength = Math.max(keyNormalized.length, searchKeyNormalized.length)
+            const score = matchLength / maxLength
+            if (!bestMatch || score > bestMatch.score) {
+              bestMatch = { key, value, score }
+              console.log(`   Match partiel trouvé (score: ${score.toFixed(2)}): "${key}" = ${value}`)
+            }
+          }
+          
+          // Correspondance par mots significatifs (>= 2 caractères, pas 3)
+          const keyWords = keyNormalized.split(/\s+/).filter(w => w.length >= 2)
+          const searchWords = searchKeyNormalized.split(/\s+/).filter(w => w.length >= 2)
           
           if (keyWords.length > 0 && searchWords.length > 0) {
-            // Vérifier si tous les mots significatifs correspondent
-            const allWordsMatch = searchWords.every(sw => 
+            // Compter les mots qui correspondent
+            const matchingWords = searchWords.filter(sw => 
               keyWords.some(kw => kw === sw || kw.includes(sw) || sw.includes(kw))
             )
+            const score = matchingWords.length / Math.max(keyWords.length, searchWords.length)
             
-            if (allWordsMatch && keyWords.length === searchWords.length) {
-              logements = value
-              break
+            // Si au moins 50% des mots correspondent, c'est un bon match
+            if (score >= 0.5 && (!bestMatch || score > bestMatch.score)) {
+              bestMatch = { key, value, score }
+              console.log(`   Match par mots (score: ${score.toFixed(2)}): "${key}" = ${value}`)
             }
           }
         }
         
         if (logements > 0) break
+      }
+      
+      // Si on a un meilleur match mais pas de correspondance exacte, l'utiliser
+      // AMÉLIORATION: Réduire le seuil à 0.25 pour être plus tolérant
+      if (logements === 0 && bestMatch && bestMatch.score > 0.25) {
+        console.log(`✅ Meilleur match trouvé (score: ${bestMatch.score.toFixed(2)}): "${bestMatch.key}" = ${bestMatch.value}`)
+        logements = bestMatch.value
+      } else if (logements === 0 && bestMatch) {
+        console.log(`⚠️ Match trouvé mais score trop faible (${bestMatch.score.toFixed(2)}): "${bestMatch.key}"`)
+      }
+    }
+    
+    // Dernière recherche agressive : recherche par sous-chaîne significative
+    if (logements === 0 && irisName.length >= 5) {
+      console.log(`🔍 Recherche agressive par sous-chaîne significative: "${irisName}"`)
+      
+      // AMÉLIORATION: Utiliser >= 2 caractères pour capturer "dor" dans "Goutte d'Or"
+      const significantWords = irisName
+        .toLowerCase()
+        .replace(/'/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length >= 2 && !/^\d+$/.test(w)) // Exclure les nombres seuls
+      
+      console.log(`   Mots significatifs extraits (>= 2 caractères):`, significantWords)
+      
+      if (significantWords.length > 0) {
+        // Chercher dans toutes les clés qui contiennent au moins un mot significatif
+        let bestMatch: { key: string; value: number; matchCount: number } | null = null
+        
+        for (const [key, value] of Array.from(irisLogementsMap.entries())) {
+          if (key.startsWith('_original_')) continue
+          
+          const keyLower = key.toLowerCase()
+          const matchingWords = significantWords.filter(word => 
+            keyLower.includes(word) || word.includes(keyLower.substring(0, Math.min(word.length, keyLower.length)))
+          )
+          
+          // Si au moins 50% des mots significatifs correspondent
+          const matchRatio = matchingWords.length / significantWords.length
+          if (matchRatio >= 0.5) {
+            if (!bestMatch || matchingWords.length > bestMatch.matchCount) {
+              bestMatch = { key, value, matchCount: matchingWords.length }
+            }
+          }
+        }
+        
+        if (bestMatch) {
+          console.log(`✅ Match trouvé par sous-chaîne significative: "${bestMatch.key}" = ${bestMatch.value} (${bestMatch.matchCount}/${significantWords.length} mots)`)
+          logements = bestMatch.value
+        }
+      }
+    }
+    
+    // Dernière tentative : recherche par préfixe du nom (pour les cas comme "Goutte d'Or 8")
+    if (logements === 0 && irisName.length >= 5) {
+      console.log(`🔍 Dernière tentative : recherche par préfixe du nom: "${irisName}"`)
+      
+      // Extraire le préfixe (premiers mots significatifs, sans le nombre final)
+      const nameWithoutNumber = irisName.replace(/\s*\d+\s*$/, '').trim()
+      const prefix = normalizeName(nameWithoutNumber).substring(0, Math.min(10, nameWithoutNumber.length))
+      
+      console.log(`   Préfixe extrait: "${prefix}"`)
+      
+      if (prefix.length >= 5) {
+        for (const [key, value] of Array.from(irisLogementsMap.entries())) {
+          if (key.startsWith('_original_')) continue
+          
+          const keyLower = key.toLowerCase()
+          // Si la clé commence par le préfixe ou contient le préfixe
+          if (keyLower.startsWith(prefix) || keyLower.includes(prefix) || prefix.includes(keyLower.substring(0, prefix.length))) {
+            // Vérifier que c'est bien le même IRIS en comparant le nombre si présent
+            const numberInName = irisName.match(/\d+/)?.[0]
+            const numberInKey = key.match(/\d+/)?.[0]
+            
+            if (!numberInName || !numberInKey || numberInName === numberInKey) {
+              console.log(`✅ Match trouvé par préfixe: "${key}" = ${value}`)
+              logements = value
+              break
+            }
+          }
+        }
+      }
+    }
+    
+    // Si toujours pas trouvé, essayer une recherche plus large par code IRIS dans toutes les clés
+    if (logements === 0 && irisCode && irisLogementsMap.size > 0) {
+      const codeSearch = irisCode.toLowerCase().trim()
+      const codeSearchNoSpaces = codeSearch.replace(/\s/g, '')
+      
+      // Parcourir toutes les clés et chercher celles qui contiennent le code
+      for (const [key, value] of Array.from(irisLogementsMap.entries())) {
+        if (key.startsWith('_original_')) continue
+        
+        const keyLower = key.toLowerCase()
+        // Si la clé contient le code IRIS ou vice versa
+        if (keyLower.includes(codeSearch) || codeSearch.includes(keyLower) ||
+            keyLower.includes(codeSearchNoSpaces) || codeSearchNoSpaces.includes(keyLower)) {
+          logements = value
+          console.log(`✅ Logements trouvés par recherche large de code: ${key} = ${logements}`)
+          break
+        }
       }
     }
     
@@ -1296,7 +1555,7 @@ export default function SecteursPage({
         const restoredIris = data.selectedIris.map((iris: SelectedIris) => {
           // S'assurer que le code est une string pour la comparaison
           const code = String(iris.code || '')
-          const logements = calculateIrisLogements(iris.name, code)
+          const logements = calculateIrisLogements(iris.name, code, undefined)
           return {
             code: code,
             name: iris.name,
@@ -1351,7 +1610,7 @@ export default function SecteursPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [irisLogementsMap.size])
 
-  const handleIrisSelect = (irisCode: string, irisName: string) => {
+  const handleIrisSelect = (irisCode: string, irisName: string, properties?: any) => {
     // Normaliser le code IRIS pour la comparaison (s'assurer que c'est une string)
     const normalizedCode = String(irisCode || '').trim()
     
@@ -1403,9 +1662,81 @@ export default function SecteursPage({
           }
         } else {
           // Pour un IRIS normal, calculer avec calculateIrisLogements
-          logements = calculateIrisLogements(irisName, normalizedCode)
+          console.log(`🔍 Calcul des logements pour IRIS:`, {
+            irisName,
+            normalizedCode,
+            propertiesKeys: properties ? Object.keys(properties) : [],
+            propertiesCode: properties?.code,
+            propertiesCodeIris: properties?.code_iris,
+            mapSize: irisLogementsMap.size,
+            mapHasCode: irisLogementsMap.has(normalizedCode),
+            mapHasCodeLower: irisLogementsMap.has(normalizedCode.toLowerCase()),
+            mapHasCodeTrim: irisLogementsMap.has(normalizedCode.trim()),
+            sampleMapKeys: Array.from(irisLogementsMap.keys()).filter(k => !k.startsWith('_original_')).slice(0, 10)
+          })
+          
+          logements = calculateIrisLogements(irisName, normalizedCode, properties)
           console.log(`📊 Sélection IRIS: ${irisName} (code: ${normalizedCode}), logements calculés: ${logements}`)
-          console.log(`   Taille de irisLogementsMap: ${irisLogementsMap.size}`)
+          
+          if (logements === 0) {
+            console.warn(`⚠️ Aucun logement trouvé pour IRIS ${irisName} (code: ${normalizedCode})`)
+            console.log(`   Tentative de recherche dans la map avec différentes variantes...`)
+            
+            // Essayer différentes variantes du code
+            const codeVariants = [
+              normalizedCode,
+              normalizedCode.toLowerCase(),
+              normalizedCode.trim(),
+              normalizedCode.replace(/\s/g, ''),
+              String(normalizedCode).padStart(9, '0'),
+              String(normalizedCode).padStart(5, '0'),
+            ]
+            
+            // Essayer aussi avec le nom normalisé
+            const nameVariants = [
+              normalizeName(irisName),
+              irisName.toLowerCase().trim(),
+              normalizeName(irisName).replace(/\s/g, ''),
+              irisName.toLowerCase().replace(/\s/g, ''),
+            ]
+            
+            // Combiner toutes les variantes
+            const allVariants = [...codeVariants, ...nameVariants]
+            
+            for (const variant of allVariants) {
+              const found = irisLogementsMap.get(variant)
+              if (found && found > 0) {
+                console.log(`   ✅ Trouvé avec variante "${variant}": ${found} logements`)
+                logements = found
+                break
+              }
+            }
+            
+            // Si toujours pas trouvé, chercher par sous-chaîne dans toutes les clés
+            if (logements === 0) {
+              console.log(`   Recherche par sous-chaîne dans toutes les clés...`)
+              const searchTerms = [
+                normalizedCode.substring(0, 6), // Premiers 6 chiffres du code
+                normalizedCode.substring(5), // Derniers chiffres du code
+                irisName.toLowerCase().substring(0, Math.min(irisName.length, 15)), // Premiers caractères du nom
+              ]
+              
+              for (const [key, value] of Array.from(irisLogementsMap.entries())) {
+                if (key.startsWith('_original_')) continue
+                const keyLower = key.toLowerCase()
+                for (const term of searchTerms) {
+                  if (keyLower.includes(term.toLowerCase()) || term.toLowerCase().includes(keyLower)) {
+                    if (value > 0) {
+                      console.log(`   ✅ Trouvé par sous-chaîne "${term}" dans clé "${key}": ${value} logements`)
+                      logements = value
+                      break
+                    }
+                  }
+                }
+                if (logements > 0) break
+              }
+            }
+          }
         }
         
         // Ouvrir le panel seulement si c'est le premier IRIS sélectionné (prev.length === 0)
@@ -1989,16 +2320,57 @@ export default function SecteursPage({
                   minHeight: '500px',
                   position: 'relative'
                 }}>
-                <MapComponent 
-                  commune={commune} 
-                  iris={iris} 
-                  selectedIris={selectedIris.map(i => i.code)}
-                  onIrisClick={handleIrisSelect}
-                  irisCounts={irisCounts}
+                {console.log('🗺️ AVANT MapComponent - État:', { 
+                  hasCommune: !!commune, 
+                  hasIris: !!iris, 
+                  irisType: iris?.type,
+                  irisFeaturesCount: iris?.features?.length || 0,
+                  selectedIrisCount: selectedIris.length,
+                  loading,
+                  error
+                })}
+                {!loading && !iris && !error && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    background: 'rgba(255, 0, 0, 0.9)',
+                    color: 'white',
+                    padding: '20px',
+                    borderRadius: '8px',
+                    zIndex: 10000,
+                    textAlign: 'center'
+                  }}>
+                    ⚠️ Aucun IRIS chargé pour cette commune
+                  </div>
+                )}
+                {commune ? (
+                  <MapComponent 
+                    commune={commune} 
+                    iris={iris} 
+                    selectedIris={selectedIris.map(i => i.code)}
+                    onIrisClick={handleIrisSelect}
+                    irisCounts={irisCounts}
                     irisParticipants={irisParticipants}
                     onIrisBubbleClick={handleIrisBubbleClick}
                     communeLogements={ville ? parseFloat(ville.logements.replace(/\s/g, '').replace(',', '.')) : undefined}
                   />
+                ) : (
+                  <div style={{
+                    height: '600px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: '18px', marginBottom: '10px' }}>Chargement de la commune...</p>
+                      <p style={{ fontSize: '14px', color: 'var(--text-tertiary)' }}>Veuillez patienter</p>
+                    </div>
+                  </div>
+                )}
                   {iris && (
                     <div style={{
                       position: 'absolute',
@@ -2872,4 +3244,5 @@ export default function SecteursPage({
     </>
   )
 }
+
 

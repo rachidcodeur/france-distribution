@@ -19,7 +19,7 @@ interface IrisMapProps {
   commune: any
   iris: any // Peut être un tableau, un FeatureCollection, ou null
   selectedIris: string[]
-  onIrisClick: (code: string, name: string) => void
+  onIrisClick: (code: string, name: string, properties?: any) => void
   irisCounts?: Map<string, number> // Nombre de sélections par IRIS
   irisParticipants?: Map<string, { entreprise: string; titre: string; }[]> // Participants par IRIS
   onIrisBubbleClick?: (irisCode: string) => void // Callback pour clic sur bulle IRIS
@@ -79,6 +79,14 @@ function MapBounds({ commune }: { commune: any }) {
 }
 
 export default function IrisMap({ commune, iris, selectedIris, onIrisClick, irisCounts = new Map(), irisParticipants = new Map(), onIrisBubbleClick, communeLogements }: IrisMapProps) {
+  console.log('🗺️ IrisMap RENDU avec props:', {
+    hasCommune: !!commune,
+    hasIris: !!iris,
+    irisType: iris?.type,
+    irisFeaturesCount: iris?.features?.length || 0,
+    selectedIrisCount: selectedIris.length
+  })
+  
   const communeGeoRef = useRef<any>(null)
   const irisGeoRef = useRef<any>(null)
   const [communeGeoData, setCommuneGeoData] = useState<any>(null)
@@ -162,12 +170,29 @@ export default function IrisMap({ commune, iris, selectedIris, onIrisClick, iris
       if (Array.isArray(iris) === false && (iris as any).type === 'FeatureCollection' && (iris as any).features) {
         const featureCount = (iris as any).features.length
         console.log(`IrisMap - FeatureCollection détectée avec ${featureCount} features`)
-        console.log('IrisMap - Premier feature:', JSON.stringify((iris as any).features[0], null, 2))
+        
+        // Vérifier que les features ont des géométries valides
+        const validFeatures = (iris as any).features.filter((f: any) => {
+          const hasGeometry = f.geometry && f.geometry.type && f.geometry.coordinates
+          if (!hasGeometry) {
+            console.warn('IrisMap - Feature sans géométrie valide:', f.properties)
+          }
+          return hasGeometry
+        })
+        
+        console.log(`IrisMap - ${validFeatures.length} features valides sur ${featureCount} total`)
+        
+        if (validFeatures.length === 0) {
+          console.error('IrisMap - Aucune feature valide avec géométrie!')
+          irisGeoRef.current = null
+          setIrisGeoData(null)
+          return
+        }
         
         // Créer une copie profonde pour forcer le re-render
         const featureCollection = {
           type: 'FeatureCollection',
-          features: (iris as any).features.map((f: any) => ({
+          features: validFeatures.map((f: any) => ({
             type: f.type,
             geometry: f.geometry,
             properties: { ...f.properties }
@@ -179,7 +204,8 @@ export default function IrisMap({ commune, iris, selectedIris, onIrisClick, iris
         console.log('IrisMap - irisGeoRef.current assigné:', {
           type: irisGeoRef.current.type,
           featuresCount: irisGeoRef.current.features.length,
-          firstFeatureGeometry: irisGeoRef.current.features[0]?.geometry?.type
+          firstFeatureGeometry: irisGeoRef.current.features[0]?.geometry?.type,
+          firstFeatureCoordinates: irisGeoRef.current.features[0]?.geometry?.coordinates ? 'présents' : 'manquants'
         })
         return
       }
@@ -281,7 +307,7 @@ export default function IrisMap({ commune, iris, selectedIris, onIrisClick, iris
         const code = String(feature.properties.code || feature.properties.code_iris || '').trim()
         const name = feature.properties.name || feature.properties.nom_iris || code
         console.log('🗺️ Clic sur IRIS depuis la carte:', { code, name, properties: feature.properties })
-        onIrisClick(code, name)
+        onIrisClick(code, name, feature.properties)
       },
       mouseover: (e: L.LeafletMouseEvent) => {
         const layer = e.target as L.Path
@@ -311,10 +337,26 @@ export default function IrisMap({ commune, iris, selectedIris, onIrisClick, iris
     })
   }
 
+  console.log('🗺️ IrisMap RENDU - irisGeoData:', {
+    hasIrisGeoData: !!irisGeoData,
+    featuresCount: irisGeoData?.features?.length || 0,
+    hasCommuneGeoData: !!communeGeoData
+  })
+  
   return (
     <div style={{ position: 'relative', width: '100%', height: '600px' }}>
+      {!commune && (
+        <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(255,0,0,0.9)', color: 'white', padding: '10px', borderRadius: '4px', zIndex: 10000 }}>
+          ⚠️ Pas de commune
+        </div>
+      )}
+      {commune && !irisGeoData && (
+        <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(255,165,0,0.9)', color: 'white', padding: '10px', borderRadius: '4px', zIndex: 10000 }}>
+          ⚠️ Pas d'IRIS chargés (commune: {commune.com_name || 'inconnue'})
+        </div>
+      )}
       <MapContainer
-        center={[44.8378, -0.5792]} // Coordonnées par défaut (Bordeaux)
+        center={[48.8566, 2.3522]} // Coordonnées par défaut (Paris)
         zoom={12}
         style={{ height: '100%', width: '100%', zIndex: 0 }}
         scrollWheelZoom={true}

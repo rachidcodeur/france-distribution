@@ -17,8 +17,92 @@ export default function Home() {
   return (
     <main>
       <Loader />
-      <Header />
-      <Hero />
+      <div
+        style={{
+          background: 'var(--gradient-dark-alt)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <Header />
+        <Hero />
+        
+        {/* Section des statistiques sous la bannière */}
+        <section
+          style={{
+            padding: 'calc(var(--spacing-lg) + 400px) 0 var(--spacing-2xl) 0',
+            position: 'relative',
+            zIndex: 1
+          }}
+        >
+          <div className="container">
+            <div
+              style={{
+                borderTop: '1px solid var(--border-subtle)',
+                maxWidth: '800px',
+                margin: '0 auto',
+                paddingTop: 'var(--spacing-lg)'
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 'var(--spacing-2xl)',
+                  justifyContent: 'center',
+                  flexWrap: 'wrap',
+                  alignItems: 'center'
+                }}
+              >
+              {[
+                { number: '500+', label: 'Villes' },
+                { number: '5M+', label: 'Logements' },
+                { number: '-40%', label: 'Économies' }
+              ].map((stat, index) => (
+                <div
+                  key={index}
+                  style={{
+                    textAlign: 'center',
+                    flex: '0 1 auto'
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 'clamp(1.8rem, 3vw, 2.5rem)',
+                      fontWeight: 700,
+                      color: 'var(--orange-primary)',
+                      marginBottom: '4px',
+                      lineHeight: 1
+                    }}
+                  >
+                    {stat.number}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '0.95rem',
+                      color: 'var(--text-secondary)',
+                      fontWeight: 400,
+                      marginTop: '4px'
+                    }}
+                  >
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
+              </div>
+              <p 
+                style={{ 
+                  marginTop: 'var(--spacing-lg)', 
+                  fontSize: '14px', 
+                  color: 'var(--text-tertiary)', 
+                  textAlign: 'center' 
+                }}
+              >
+                Cliquez sur le bouton ci-dessus pour explorer nos zones de distribution.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
       <div
         style={{
           background: 'var(--gradient-dark)',
