@@ -32,7 +32,7 @@ export default function Home() {
           className="hero-stats-section"
           style={{
             paddingTop: '30px',
-            paddingBottom: 'var(--spacing-2xl)',
+            paddingBottom: 'calc(var(--spacing-2xl) - 80px)',
             paddingLeft: '0',
             paddingRight: '0',
             position: 'relative',

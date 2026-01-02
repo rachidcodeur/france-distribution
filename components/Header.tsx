@@ -147,7 +147,7 @@ export default function Header() {
             <li><Link href="/#faq" className="nav-link" onClick={closeMenu}>FAQ</Link></li>
             <li><Link href="/contact" className="nav-link" onClick={closeMenu}>Contact</Link></li>
           </ul>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="nav-right" style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'flex-end', marginLeft: 'auto' }}>
             {authLoading ? (
               // Afficher un espace réservé pendant le chargement pour éviter le flash
               <div 
