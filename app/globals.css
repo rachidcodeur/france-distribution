@@ -3295,7 +3295,7 @@ a {
     
     /* Réduire les espacements dans les sections */
     .hero {
-        padding-top: calc(88px + 2vh) !important;
+        padding-top: calc(88px + 2vh + 30px) !important;
         padding-bottom: calc(var(--spacing-lg) - 160px) !important;
         margin-bottom: -300px !important;
     }
