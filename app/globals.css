@@ -2186,8 +2186,18 @@ a {
         font-size: inherit !important;
     }
     
-    .about-section-grid > div:first-child {
-        min-height: 250px !important;
+    .about-section-grid > div:first-child,
+    .about-image-container {
+        min-height: auto !important;
+        height: auto !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    .about-image-container .about-image {
+        width: 100% !important;
+        height: auto !important;
     }
 }
 
@@ -2634,10 +2644,17 @@ a {
     
     .hero-subtitle {
         font-size: 14px !important;
+        margin-bottom: var(--spacing-2xl) !important;
+    }
+    
+    .hero-title {
+        margin-bottom: var(--spacing-xl) !important;
     }
     
     .hero-cta {
         flex-direction: column;
+        gap: var(--spacing-md) !important;
+        margin-top: var(--spacing-lg) !important;
     }
     
     .btn {

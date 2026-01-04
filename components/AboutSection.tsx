@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { gsap } from 'gsap'
@@ -14,6 +14,16 @@ export default function AboutSection() {
   const sectionRef = useRef<HTMLElement>(null)
   const imageRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined' || !sectionRef.current) return
@@ -123,6 +133,7 @@ export default function AboutSection() {
           {/* Colonne gauche - Image */}
           <div
             ref={imageRef}
+            className="about-image-container"
             style={{
               position: 'relative',
               width: '100%',
@@ -134,15 +145,32 @@ export default function AboutSection() {
               border: '1px solid var(--border-subtle)'
             }}
           >
-            <Image
-              src="/image-about-france-distri.webp"
-              alt="France Distribution"
-              fill
-              style={{
-                objectFit: 'cover'
-              }}
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
+            {isMobile ? (
+              <Image
+                src="/image-about-france-distri.webp"
+                alt="France Distribution"
+                width={800}
+                height={600}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  objectFit: 'contain'
+                }}
+                sizes="100vw"
+                className="about-image"
+              />
+            ) : (
+              <Image
+                src="/image-about-france-distri.webp"
+                alt="France Distribution"
+                fill
+                style={{
+                  objectFit: 'cover'
+                }}
+                sizes="50vw"
+                className="about-image"
+              />
+            )}
             {/* Overlay gradient */}
             <div
               style={{
@@ -193,7 +221,7 @@ export default function AboutSection() {
               </p>
               
               <p style={{ marginBottom: 'var(--spacing-md)' }}>
-                Nous couvrons toute la France sur les <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>villes de + de 10 000 habitants</strong>, planifions nos opérations selon un <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>calendrier semestriel en ligne</strong>, et fournissons un <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>suivi fiable</strong> avec <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>rapports détaillés</strong> pour chaque campagne <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>en temps réel</strong>.
+                Nous couvrons toute la France sur les <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>villes de + de 10 000 habitants</strong>, planifions nos opérations selon un <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>calendrier hebdomadaire en ligne</strong>, et fournissons un <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>suivi fiable</strong> avec <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>rapports détaillés</strong> pour chaque campagne <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>en temps réel</strong>.
               </p>
               
               <p style={{ marginBottom: 0 }}>

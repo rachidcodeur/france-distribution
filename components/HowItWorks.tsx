@@ -12,7 +12,7 @@ const steps = [
   {
     number: '1',
     title: 'Choisissez votre ville',
-    description: 'Sélectionnez votre ville et un créneau semestriel',
+    description: 'Sélectionnez votre ville et un créneau hebdomadaire',
     icon: '📍'
   },
   {

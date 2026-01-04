@@ -144,7 +144,7 @@ export default function Hero() {
                 fontWeight: 400
               }}
             >
-              France entière des villes de + 10 000 habitants ( calendrier semestriel • Transparence totale avec Tracés GPS de la mission en direct )
+              France entière des villes de + 10 000 habitants ( calendrier hebdomadaire • Transparence totale avec Tracés GPS de la mission en direct )
             </p>
             
             <div 
