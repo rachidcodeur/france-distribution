@@ -3791,6 +3791,13 @@ a {
     .hero-title span.cinquante, .pricing-comparison-title-horizontal span.cinquante {
         font-size: 22px!important;
     }
+
+    .hero-stats-section{
+        margin-top: 50px!important;
+    }
+    .section-subtitle{
+        margin-bottom: 20px!important;
+    }
     
 }
 
