@@ -1136,21 +1136,50 @@ export default function SecteursPage({
   }, [iris])
 
   const calculateIrisLogements = useCallback((irisName: string, irisCode?: string, properties?: any): number => {
-    // D'abord, vérifier si les logements sont directement dans les propriétés
+    // Petite fonction de secours : répartir le total de logements de la commune
+    // entre les IRIS quand on n'a AUCUNE donnée spécifique (éviter les IRIS à 0)
+    const computeFallbackFromCommune = (): number => {
+      try {
+        if (!ville || !ville.logements || !iris || !Array.isArray(iris.features) || iris.features.length === 0) {
+          return 0
+        }
+
+        const totalCommune = parseFloat(
+          String(ville.logements).replace(/\s/g, '').replace(',', '.')
+        ) || 0
+
+        if (totalCommune <= 0) return 0
+
+        const irisCount = iris.features.length
+        if (irisCount <= 0) return 0
+
+        const perIris = Math.max(1, Math.round(totalCommune / irisCount))
+        console.log(`ℹ️ Fallback logements pour ${irisName}: ${perIris} (total commune ${totalCommune} / ${irisCount} IRIS)`)
+        return perIris
+      } catch (e) {
+        console.warn('⚠️ Erreur lors du calcul du fallback logements depuis la commune:', e)
+        return 0
+      }
+    }
+
+    // 1. Si l'API fournit directement les logements dans les propriétés de l'IRIS,
+    // on se fie à elle en priorité
     if (properties) {
       const directLogements = properties.logements || properties.logements_iris || properties.logementsIris
       if (directLogements && !isNaN(Number(directLogements))) {
         const logementsValue = Number(directLogements)
         if (logementsValue > 0) {
-          console.log(`✅ Logements trouvés directement dans les propriétés: ${logementsValue}`)
+          console.log(`✅ Logements trouvés directement dans les propriétés (API/geo): ${logementsValue}`)
           return logementsValue
         }
       }
     }
     
+    // 2. Si la map issue du JSON est complètement vide pour cette commune,
+    // on évite les IRIS à 0 en utilisant un fallback basé sur le total communal
     if (irisLogementsMap.size === 0) {
-      console.warn(`⚠️ irisLogementsMap est vide pour ${irisName} (code: ${irisCode})`)
-      return 0
+      console.warn(`⚠️ irisLogementsMap est vide pour ${irisName} (code: ${irisCode}), on utilise un fallback à partir de la commune`)
+      return computeFallbackFromCommune()
     }
     
     const normalizedName = normalizeName(irisName)
@@ -1532,9 +1561,18 @@ export default function SecteursPage({
         }
       }
     }
+
+    // Si après toutes les tentatives on n'a toujours rien trouvé dans la map,
+    // on revient à un fallback propre basé sur la commune (pour éviter 0 logements)
+    if (logements === 0) {
+      const fallback = computeFallbackFromCommune()
+      if (fallback > 0) {
+        return fallback
+      }
+    }
     
     return logements
-  }, [irisLogementsMap, normalizeName, createSearchKey])
+  }, [irisLogementsMap, normalizeName, createSearchKey, ville, iris])
 
   // Restaurer les sélections depuis localStorage au retour de la page de confirmation
   // (placé après calculateIrisLogements pour éviter les erreurs de référence)
