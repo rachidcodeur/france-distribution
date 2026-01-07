@@ -362,12 +362,20 @@ export default function VilleDetail({ villeName }: { villeName: string }) {
                           {monthsWithTournees.map(({ month, monthName, year, tournees }) => {
                             const monthKey = `${year}-${month}`
                             const yearLabel = year !== new Date().getFullYear() ? ` ${year}` : ''
+
+                            // Compter les tournées réellement encore affichables pour ce mois
+                            // (même logique que filteredTournees : on exclut les tournées passées / date limite dépassée)
+                            const activeCount = tournees.filter((tournee) => {
+                              const isPassee = isTourneePassee(tournee) || isDateLimiteDepassee(tournee)
+                              return !isPassee
+                            }).length
+
                             return (
                               <option 
                                 key={monthKey} 
                                 value={monthKey}
                               >
-                                {monthName.charAt(0).toUpperCase() + monthName.slice(1)}{yearLabel} ({tournees.length})
+                                {monthName.charAt(0).toUpperCase() + monthName.slice(1)}{yearLabel} ({activeCount})
                               </option>
                             )
                           })}

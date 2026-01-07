@@ -115,3 +115,33 @@ CREATE POLICY "Anyone can view iris counts"
   FOR SELECT
   USING (true);
 
+-- Table des soumissions du formulaire de contact
+CREATE TABLE IF NOT EXISTS france_distri_contacts_submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  company TEXT,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour faciliter les tris / filtrages
+CREATE INDEX IF NOT EXISTS idx_contacts_submissions_created_at ON france_distri_contacts_submissions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_contacts_submissions_email ON france_distri_contacts_submissions(email);
+
+-- RLS pour contrôler l'accès
+ALTER TABLE france_distri_contacts_submissions ENABLE ROW LEVEL SECURITY;
+
+-- Les visiteurs (anon) peuvent créer une soumission
+CREATE POLICY "Anyone can create contact submission"
+  ON france_distri_contacts_submissions
+  FOR INSERT
+  WITH CHECK (true);
+
+-- Les utilisateurs authentifiés peuvent lire les soumissions
+CREATE POLICY "Authenticated can read contact submissions"
+  ON france_distri_contacts_submissions
+  FOR SELECT
+  USING (auth.role() = 'authenticated');
+
