@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { isValidFrenchPhone } from '../lib/phoneValidation'
+import Toast from './Toast'
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -13,6 +14,15 @@ export default function Contact() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [phoneError, setPhoneError] = useState(false)
+  const [toast, setToast] = useState<{
+    message: string
+    type: 'success' | 'error' | 'info'
+    visible: boolean
+  }>({
+    message: '',
+    type: 'info',
+    visible: false
+  })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -24,28 +34,62 @@ export default function Contact() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Valider le numéro de téléphone si renseigné
     if (formData.phone && formData.phone.trim() && !isValidFrenchPhone(formData.phone)) {
-      alert('Veuillez saisir un numéro de téléphone français valide (10 chiffres, format: 09 78 28 84 62 ou +33 9 78 28 84 62)')
+      setPhoneError(true)
+      setToast({
+        message: 'Veuillez saisir un numéro de téléphone français valide (10 chiffres, format: 09 78 28 84 62 ou +33 9 78 28 84 62)',
+        type: 'error',
+        visible: true
+      })
       return
     }
     
     setIsSubmitting(true)
-    
-    // Simulation d'envoi (à remplacer par votre API)
-    setTimeout(() => {
-      setIsSubmitting(false)
+    setSubmitStatus('idle')
+
+    try {
+      const response = await fetch('/api/contact-submission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de l\'envoi')
+      }
+
       setSubmitStatus('success')
+      setToast({
+        message: 'Message envoyé avec succès ! Nous vous répondrons dans les plus brefs délais.',
+        type: 'success',
+        visible: true
+      })
       setFormData({ name: '', email: '', phone: '', message: '' })
       
       setTimeout(() => {
         setSubmitStatus('idle')
       }, 3000)
-    }, 1500)
+    } catch (error) {
+      console.error(error)
+      setSubmitStatus('error')
+      setToast({
+        message: 'Une erreur est survenue lors de l’envoi du message. Veuillez réessayer.',
+        type: 'error',
+        visible: true
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
     <section className="contact" id="contact">
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.visible}
+        onClose={() => setToast((prev) => ({ ...prev, visible: false }))}
+      />
       <div className="container">
         <div className="section-header">
           <h2 className="section-title">Contactez-nous</h2>
@@ -152,9 +196,15 @@ export default function Contact() {
             <button 
               type="submit" 
               className="btn btn-primary btn-full"
-              disabled={isSubmitting || submitStatus === 'success'}
+              disabled={isSubmitting}
             >
-              {isSubmitting ? 'Envoi en cours...' : submitStatus === 'success' ? 'Message envoyé !' : 'Envoyer la demande'}
+              {isSubmitting
+                ? 'Envoi en cours...'
+                : submitStatus === 'success'
+                  ? 'Message envoyé !'
+                  : submitStatus === 'error'
+                    ? 'Réessayer'
+                    : 'Envoyer la demande'}
             </button>
           </form>
         </div>

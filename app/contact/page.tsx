@@ -3,6 +3,7 @@
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import GSAPAnimations from '@/components/GSAPAnimations'
+import Toast from '@/components/Toast'
 import { useState } from 'react'
 import { isValidFrenchPhone } from '@/lib/phoneValidation'
 
@@ -17,6 +18,15 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [phoneError, setPhoneError] = useState(false)
+  const [toast, setToast] = useState<{
+    message: string
+    type: 'success' | 'error' | 'info'
+    visible: boolean
+  }>({
+    message: '',
+    type: 'info',
+    visible: false
+  })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -28,19 +38,36 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Valider le numéro de téléphone si renseigné
     if (formData.phone && formData.phone.trim() && !isValidFrenchPhone(formData.phone)) {
-      alert('Veuillez saisir un numéro de téléphone français valide (10 chiffres, format: 09 78 28 84 62 ou +33 9 78 28 84 62)')
+      setPhoneError(true)
+      setToast({
+        message: 'Veuillez saisir un numéro de téléphone français valide (10 chiffres, format: 09 78 28 84 62 ou +33 9 78 28 84 62)',
+        type: 'error',
+        visible: true
+      })
       return
     }
     
     setIsSubmitting(true)
     setSubmitStatus('idle')
 
-    // Simuler l'envoi du formulaire
-    setTimeout(() => {
-      setIsSubmitting(false)
+    try {
+      const response = await fetch('/api/contact-submission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de l\'envoi')
+      }
+
       setSubmitStatus('success')
+      setToast({
+        message: 'Message envoyé avec succès ! Nous vous répondrons dans les plus brefs délais.',
+        type: 'success',
+        visible: true
+      })
       setFormData({
         name: '',
         email: '',
@@ -48,11 +75,27 @@ export default function ContactPage() {
         company: '',
         message: ''
       })
-    }, 1000)
+    } catch (error) {
+      console.error(error)
+      setSubmitStatus('error')
+      setToast({
+        message: 'Une erreur est survenue lors de l’envoi du message. Veuillez réessayer.',
+        type: 'error',
+        visible: true
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
     <main>
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.visible}
+        onClose={() => setToast((prev) => ({ ...prev, visible: false }))}
+      />
       <Header />
       <section style={{ 
         marginTop: '88px', 

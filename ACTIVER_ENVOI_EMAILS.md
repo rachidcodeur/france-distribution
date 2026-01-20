@@ -61,12 +61,12 @@ Supabase nécessite un service SMTP configuré pour envoyer des emails. Par déf
 1. Dans **Supabase Dashboard**, allez dans **Authentication** → **URL Configuration**
 2. Dans **Redirect URLs**, ajoutez :
    ```
-   http://localhost:3000/auth/callback
+   https://france-distribution-flyers.fr/auth/callback
    https://votre-domaine.com/auth/callback
    ```
 3. Dans **Site URL**, configurez :
    ```
-   http://localhost:3000
+   https://france-distribution-flyers.fr
    ```
    (ou votre URL de production)
 

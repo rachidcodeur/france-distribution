@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
@@ -9,6 +9,7 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import GSAPAnimations from '@/components/GSAPAnimations'
 import Toast from '@/components/Toast'
+import { isValidFrenchPhone } from '@/lib/phoneValidation'
 
 interface SelectedIris {
   code: string
@@ -39,9 +40,27 @@ interface StoredSelection {
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [storedData, setStoredData] = useState<StoredSelection | null>(null)
   const [user, setUser] = useState<User | null>(null)
-  const [isSignUp, setIsSignUp] = useState(true)
+  const modeParam = searchParams.get('mode')
+  const [isSignUp, setIsSignUp] = useState(modeParam !== 'signin')
+
+  // Mettre à jour isSignUp quand le paramètre mode change dans l'URL
+  useEffect(() => {
+    const currentMode = searchParams.get('mode')
+    setIsSignUp(currentMode !== 'signin')
+    // Réinitialiser les erreurs et messages quand on change de mode
+    setError(null)
+    setMessage(null)
+  }, [searchParams])
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [company, setCompany] = useState('')
+  const [street, setStreet] = useState('')
+  const [postalCode, setPostalCode] = useState('')
+  const [city, setCity] = useState('')
+  const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [confirmEmail, setConfirmEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -55,6 +74,50 @@ export default function LoginPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
   const hasSavedRef = useRef(false) // Ref pour éviter le double comptage (plus fiable que useState)
   const savingRef = useRef(false) // Ref pour éviter les appels concurrents
+
+  const getAuthErrorMessage = (err: any, fallback = 'Une erreur est survenue. Veuillez réessayer.') => {
+    const message = String(err?.message || err?.error_description || '').toLowerCase()
+
+    if (message.includes('invalid login credentials')) {
+      return 'Email ou mot de passe incorrect.'
+    }
+    if (message.includes('email not confirmed')) {
+      return 'Veuillez confirmer votre adresse email avant de vous connecter.'
+    }
+    if (message.includes('user already registered') || message.includes('email already')) {
+      return 'Un compte existe déjà avec cette adresse email.'
+    }
+    if (message.includes('password should be at least')) {
+      return 'Le mot de passe doit contenir au moins 6 caractères.'
+    }
+    if (message.includes('invalid email')) {
+      return 'Adresse email invalide.'
+    }
+    if (message.includes('rate limit') || message.includes('too many requests')) {
+      return 'Trop de tentatives. Veuillez réessayer plus tard.'
+    }
+    if (message.includes('signup disabled')) {
+      return 'Les inscriptions sont désactivées pour le moment.'
+    }
+
+    return fallback
+  }
+
+  const isValidEmail = (value: string) => {
+    const trimmed = value.trim()
+    if (!trimmed) return false
+    if (trimmed.length > 254) return false
+    // Validation simple et robuste
+    const basic = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
+    if (!basic) return false
+    if (trimmed.includes('..')) return false
+    return true
+  }
+
+  const showErrorToast = (message: string) => {
+    setToast({ message, type: 'error' })
+    setTimeout(() => setToast(null), 4000)
+  }
 
   // Charger les données depuis localStorage au montage (si disponibles)
   useEffect(() => {
@@ -273,29 +336,55 @@ export default function LoginPage() {
     setMessage(null)
 
     if (!isSupabaseConfigured()) {
-      setError('Supabase n\'est pas configuré. Veuillez configurer vos variables d\'environnement.')
+      showErrorToast('Supabase n\'est pas configuré. Veuillez configurer vos variables d\'environnement.')
       setLoading(false)
       return
     }
 
     try {
       if (isSignUp) {
+        if (!isValidEmail(email)) {
+          showErrorToast('Adresse email invalide.')
+          setLoading(false)
+          return
+        }
+
+        if (!isValidEmail(confirmEmail)) {
+          showErrorToast('Adresse email de confirmation invalide.')
+          setLoading(false)
+          return
+        }
+
         // Validation de l'email de confirmation
         if (email !== confirmEmail) {
-          setError('Les adresses email ne correspondent pas.')
+          showErrorToast('Les adresses email ne correspondent pas.')
+          setLoading(false)
+          return
+        }
+
+        // Validation des champs obligatoires du profil
+        if (!company.trim() || !firstName.trim() || !lastName.trim() || !street.trim() || !postalCode.trim() || !city.trim() || !phone.trim()) {
+          showErrorToast('Merci de remplir tous les champs obligatoires : entreprise, prénom, nom, adresse, code postal, ville, téléphone.')
+          setLoading(false)
+          return
+        }
+
+        // Validation du téléphone
+        if (phone && phone.trim() && !isValidFrenchPhone(phone)) {
+          showErrorToast('Veuillez saisir un numéro de téléphone français valide (10 chiffres, format: 09 78 28 84 62 ou +33 9 78 28 84 62).')
           setLoading(false)
           return
         }
 
         // Validation du mot de passe
         if (password.length < 6) {
-          setError('Le mot de passe doit contenir au moins 6 caractères.')
+          showErrorToast('Le mot de passe doit contenir au moins 6 caractères.')
           setLoading(false)
           return
         }
 
         if (password !== confirmPassword) {
-          setError('Les mots de passe ne correspondent pas.')
+          showErrorToast('Les mots de passe ne correspondent pas.')
           setLoading(false)
           return
         }
@@ -307,7 +396,7 @@ export default function LoginPage() {
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback`,
             data: {
-              name: email.split('@')[0]
+              name: `${firstName} ${lastName}`.trim()
             }
           }
         })
@@ -318,6 +407,30 @@ export default function LoginPage() {
           console.log('✅ Compte créé, user ID:', data.user.id)
           console.log('📋 Session disponible immédiatement:', !!data.session)
           console.log('📧 Email confirmé:', data.user.email_confirmed_at ? 'Oui' : 'Non')
+
+          // Créer / mettre à jour le profil utilisateur avec les infos du formulaire
+          if (data.user.id) {
+            const profilePayload = {
+              user_id: data.user.id,
+              email: email.trim(),
+              nom: lastName.trim(),
+              prenom: firstName.trim(),
+              entreprise: company.trim(),
+              telephone: phone.trim(),
+              adresse_rue: street.trim(),
+              adresse_code_postal: postalCode.trim(),
+              adresse_ville: city.trim()
+            }
+
+            // @ts-ignore
+            const { error: profileError } = await (supabase as any)
+              .from('france_distri_user_profiles')
+              .upsert(profilePayload, { onConflict: 'user_id' })
+
+            if (profileError) {
+              console.error('❌ Erreur lors de la création du profil utilisateur:', profileError)
+            }
+          }
           
           // Si une session est disponible immédiatement (email confirmation désactivé)
           if (data.session && data.session.user) {
@@ -375,6 +488,12 @@ export default function LoginPage() {
         }
       } else {
         // Connexion
+        if (!isValidEmail(email)) {
+          showErrorToast('Adresse email invalide.')
+          setLoading(false)
+          return
+        }
+
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -408,7 +527,7 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       console.error('❌ Erreur:', err)
-      setError(err.message || 'Une erreur est survenue')
+      showErrorToast(getAuthErrorMessage(err))
       setLoading(false)
     }
   }
@@ -425,39 +544,27 @@ export default function LoginPage() {
       <Header />
       <section className="tournees-section" style={{ marginTop: '88px', padding: 'var(--spacing-4xl) 0', background: 'var(--gradient-dark)' }}>
         <div className="container">
-          <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <div style={{
-              background: 'linear-gradient(135deg, #1F2E4E 0%, #131214 100%)',
-              borderRadius: '16px',
-              padding: '70px',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-              border: '1px solid rgba(255, 255, 255, 0.1)'
-            }}>
+          <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+            <div
+              className="auth-card"
+              style={{
+                background: 'linear-gradient(135deg, #1F2E4E 0%, #131214 100%)',
+                borderRadius: '16px',
+                padding: '55px 16px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+              }}
+            >
               <h1 style={{
-                fontSize: '28px',
+                fontSize: '24px',
                 fontWeight: 700,
                 color: 'var(--text-primary)',
-                marginBottom: 'var(--spacing-lg)',
+                marginBottom: 'var(--spacing-md)',
                 textAlign: 'center',
                 fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
               }}>
                 {isSignUp ? 'Créer un compte' : 'Se connecter'}
               </h1>
-
-              {error && (
-                <div style={{
-                  background: 'rgba(244, 67, 54, 0.1)',
-                  border: '1px solid rgba(244, 67, 54, 0.3)',
-                  borderRadius: '8px',
-                  padding: 'var(--spacing-md)',
-                  marginBottom: 'var(--spacing-lg)',
-                  color: '#f44336',
-                  fontSize: '14px',
-                  whiteSpace: 'pre-line'
-                }}>
-                  {error}
-                </div>
-              )}
 
               {message && (
                 <div style={{
@@ -488,8 +595,268 @@ export default function LoginPage() {
                   💾 Sauvegarde de votre sélection en cours...
                 </div>
               )}
-
+              
               <form onSubmit={handleSubmit}>
+                {isSignUp && (
+                  <>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 'var(--spacing-md)',
+                      marginBottom: 'var(--spacing-md)'
+                    }}>
+                      <div>
+                        <label htmlFor="firstName" style={{
+                          display: 'block',
+                          marginBottom: 'var(--spacing-xs)',
+                          color: 'var(--text-primary)',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                        }}>
+                          Prénom
+                        </label>
+                        <input
+                          id="firstName"
+                          type="text"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          required={isSignUp}
+                          disabled={loading || saving}
+                          className="input-placeholder-white"
+                          style={{
+                            width: '100%',
+                            padding: '12px 12px',
+                            background: '#222b44',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            color: 'var(--text-primary)',
+                            fontSize: '16px',
+                            fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                            transition: 'all 0.25s ease'
+                          }}
+                          placeholder="Prénom"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="lastName" style={{
+                          display: 'block',
+                          marginBottom: 'var(--spacing-xs)',
+                          color: 'var(--text-primary)',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                        }}>
+                          Nom
+                        </label>
+                        <input
+                          id="lastName"
+                          type="text"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          required={isSignUp}
+                          disabled={loading || saving}
+                          className="input-placeholder-white"
+                          style={{
+                            width: '100%',
+                            padding: '12px 12px',
+                            background: '#222b44',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            color: 'var(--text-primary)',
+                            fontSize: '16px',
+                            fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                            transition: 'all 0.25s ease'
+                          }}
+                          placeholder="Nom"
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 'var(--spacing-md)',
+                      marginBottom: 'var(--spacing-md)'
+                    }}>
+                      <div>
+                        <label htmlFor="company" style={{
+                          display: 'block',
+                          marginBottom: 'var(--spacing-xs)',
+                          color: 'var(--text-primary)',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                        }}>
+                          Entreprise
+                        </label>
+                        <input
+                          id="company"
+                          type="text"
+                          value={company}
+                          onChange={(e) => setCompany(e.target.value)}
+                          required={isSignUp}
+                          disabled={loading || saving}
+                          className="input-placeholder-white"
+                          style={{
+                            width: '100%',
+                            padding: '12px 12px',
+                            background: '#222b44',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            color: 'var(--text-primary)',
+                            fontSize: '16px',
+                            fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                            transition: 'all 0.25s ease'
+                          }}
+                          placeholder="Entreprise"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="phone" style={{
+                          display: 'block',
+                          marginBottom: 'var(--spacing-xs)',
+                          color: 'var(--text-primary)',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                        }}>
+                          Téléphone
+                        </label>
+                        <input
+                          id="phone"
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          required={isSignUp}
+                          disabled={loading || saving}
+                          className="input-placeholder-white"
+                          style={{
+                            width: '100%',
+                            padding: '12px 12px',
+                            background: '#222b44',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            color: 'var(--text-primary)',
+                            fontSize: '16px',
+                            fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                            transition: 'all 0.25s ease'
+                          }}
+                          placeholder="Ex : 06 12 34 56 78"
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+                      <label htmlFor="street" style={{
+                        display: 'block',
+                        marginBottom: 'var(--spacing-xs)',
+                        color: 'var(--text-primary)',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                      }}>
+                        Adresse
+                      </label>
+                      <input
+                        id="street"
+                        type="text"
+                        value={street}
+                        onChange={(e) => setStreet(e.target.value)}
+                        required={isSignUp}
+                        disabled={loading || saving}
+                        className="input-placeholder-white"
+                        style={{
+                          width: '100%',
+                          padding: '12px 12px',
+                          background: '#222b44',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '8px',
+                          color: 'var(--text-primary)',
+                          fontSize: '16px',
+                          fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                          transition: 'all 0.25s ease'
+                        }}
+                        placeholder="Adresse complète"
+                      />
+                    </div>
+
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 'var(--spacing-md)',
+                      marginBottom: 'var(--spacing-md)'
+                    }}>
+                      <div>
+                        <label htmlFor="postalCode" style={{
+                          display: 'block',
+                          marginBottom: 'var(--spacing-xs)',
+                          color: 'var(--text-primary)',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                        }}>
+                          Code postal
+                        </label>
+                        <input
+                          id="postalCode"
+                          type="text"
+                          value={postalCode}
+                          onChange={(e) => setPostalCode(e.target.value)}
+                          required={isSignUp}
+                          disabled={loading || saving}
+                          className="input-placeholder-white"
+                          style={{
+                            width: '100%',
+                            padding: '12px 12px',
+                            background: '#222b44',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            color: 'var(--text-primary)',
+                            fontSize: '16px',
+                            fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                            transition: 'all 0.25s ease'
+                          }}
+                          placeholder="Code postal"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="city" style={{
+                          display: 'block',
+                          marginBottom: 'var(--spacing-xs)',
+                          color: 'var(--text-primary)',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                        }}>
+                          Ville
+                        </label>
+                        <input
+                          id="city"
+                          type="text"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          required={isSignUp}
+                          disabled={loading || saving}
+                          className="input-placeholder-white"
+                          style={{
+                            width: '100%',
+                            padding: '12px 12px',
+                            background: '#222b44',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            color: 'var(--text-primary)',
+                            fontSize: '16px',
+                            fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                            transition: 'all 0.25s ease'
+                          }}
+                          placeholder="Ville"
+                        />
+                      </div>
+                    </div>
+
+                  </>
+                )}
                 <div style={{ marginBottom: 'var(--spacing-lg)' }}>
                   <label htmlFor="email" style={{
                     display: 'block',

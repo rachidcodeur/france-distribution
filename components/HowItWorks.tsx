@@ -11,21 +11,21 @@ if (typeof window !== 'undefined') {
 const steps = [
   {
     number: '1',
-    title: 'Choisissez votre ville',
-    description: 'Sélectionnez votre ville et un créneau hebdomadaire',
-    icon: '📍'
+    title: 'Création sur-mesure',
+    description: 'Design professionnel adapté à votre image de marque',
+    icon: '🎨'
   },
   {
     number: '2',
-    title: 'Rejoignez la tournée',
-    description: 'Participez à une tournée mutualisée avec d\'autres entreprises local',
-    icon: '🤝'
+    title: 'Production express',
+    description: 'Fabrication rapide sur supports haut de gamme',
+    icon: '⚡'
   },
   {
     number: '3',
-    title: 'Suivez l\'avancement',
-    description: 'Recevez votre rapport de distribution détaillé',
-    icon: '📊'
+    title: 'Diffusion optimisée',
+    description: 'Distribution en boîtes aux lettres avec tracés GPS',
+    icon: '📮'
   }
 ]
 
@@ -254,7 +254,7 @@ export default function HowItWorks() {
                 backdropFilter: 'blur(20px)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: '20px',
-                padding: 'var(--spacing-xl)',
+                padding: 'var(--spacing-xl) var(--spacing-md)',
                 textAlign: 'center',
                 position: 'relative',
                 zIndex: 1,

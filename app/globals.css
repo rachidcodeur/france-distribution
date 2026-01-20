@@ -43,8 +43,8 @@
     /* Dégradés Premium */
     --gradient-main: linear-gradient(135deg, #fb6d25 0%, #e85a1a 50%, #d44a0f 100%);
     --gradient-orange-glow: linear-gradient(135deg, rgba(251, 109, 37, 0.2) 0%, rgba(232, 90, 26, 0.1) 100%);
-    --gradient-dark: radial-gradient(circle at top left, #0f0f15 0%, #0a0a0f 50%, #050508 100%);
-    --gradient-dark-alt: radial-gradient(ellipse at center bottom, rgba(139, 69, 19, 0.15) 0%, rgba(80, 30, 10, 0.08) 30%, #0a0a0f 60%, #050508 100%);
+    --gradient-dark: radial-gradient(ellipse at center, #1a1b2e 0%, #151627 30%, #0f101d 60%, #0a0b15 100%);
+    --gradient-dark-alt: linear-gradient(to right, #1d2743 0%, #2a3450 30%, #3d4a65 60%, #fb6d25 100%);
     --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
     --gradient-card: linear-gradient(145deg, rgba(26, 26, 36, 0.8) 0%, rgba(19, 18, 20, 0.6) 100%);
     
@@ -76,6 +76,51 @@ html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+}
+
+/* Carte d'authentification (login / inscription) */
+@media (min-width: 1024px) {
+    .auth-card {
+        padding-left: 45px !important;
+        padding-right: 45px !important;
+    }
+}
+
+/* Styles mobile pour le formulaire d'authentification */
+@media (max-width: 768px) {
+    .auth-card {
+        padding-top: 32px !important;
+        padding-bottom: 32px !important;
+    }
+    
+    .auth-card label {
+        font-size: 14px !important;
+    }
+    
+    .auth-card input[type="text"],
+    .auth-card input[type="email"],
+    .auth-card input[type="tel"],
+    .auth-card input[type="password"],
+    .auth-card textarea {
+        font-size: 12px !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+    
+    .auth-card button {
+        font-size: 12px !important;
+    }
+    
+    .auth-card h1 {
+        font-size: 20px !important;
+    }
+    
+    /* Messages d'erreur, succès, info */
+    .auth-card > div[style*="fontSize"] {
+        font-size: 12px !important;
+    }
 }
 
 body {
@@ -325,6 +370,11 @@ a {
         margin-left: 0;
     }
     
+    /* Masquer les boutons d'authentification dans le menu mobile sur desktop */
+    .nav-links .mobile-auth-buttons {
+        display: none !important;
+    }
+    
     /* Cacher le menu hamburger sur desktop */
     .mobile-menu-toggle {
         display: none !important;
@@ -457,6 +507,10 @@ a {
 /* ============================================
    HERO SECTION (DARK)
    ============================================ */
+
+.hero-background {
+    /* Dégradé statique sans animation */
+}
 
 .hero {
     margin-top: 88px;
@@ -747,7 +801,7 @@ a {
 
 .cta-section {
     padding: var(--spacing-2xl) 0;
-    background: var(--gradient-dark);
+    background: radial-gradient(ellipse at center, #1a1b2e 0%, #151627 30%, #0f101d 60%, #0a0b15 100%) !important;
 }
 
 .cta-content {
@@ -1189,7 +1243,7 @@ a {
 .tournees-filter {
     display: flex;
     gap: var(--spacing-lg);
-    margin-bottom: var(--spacing-4xl);
+    margin-bottom: 60px;
     flex-wrap: wrap;
     align-items: flex-end;
     max-width: 900px;
@@ -1719,7 +1773,7 @@ a {
    ============================================ */
 
 .tournees-info-section {
-    margin-top: var(--spacing-4xl);
+    margin-top: var(--spacing-xl);
 }
 
 .info-cards-grid {
@@ -1780,7 +1834,7 @@ a {
     border-radius: 24px;
     padding: var(--spacing-2xl);
     border: 2px solid #353550;
-    margin-top: var(--spacing-2xl);
+    margin-top: 0;
 }
 
 .how-to-search-title {
@@ -2587,10 +2641,28 @@ a {
         height: 19px !important;
     }
     
-    /* Masquer le bouton "Créer mon compte" sur mobile */
-    .nav-cta.btn,
-    .nav-cta#headerCta {
+    /* Masquer les boutons dans nav-right sur mobile */
+    .nav-right .nav-cta.btn,
+    .nav-right .nav-cta#headerCta {
         display: none !important;
+    }
+    
+    /* Boutons d'authentification dans le menu mobile - sur la même ligne */
+    .nav-links .mobile-auth-buttons {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 12px !important;
+        width: 100% !important;
+        margin-top: var(--spacing-sm) !important;
+        list-style: none !important;
+        padding: 0 !important;
+    }
+    
+    .mobile-auth-buttons button {
+        flex: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     
     .mobile-menu-toggle {
@@ -3083,6 +3155,12 @@ a {
 .leaflet-popup-tip {
   background: var(--bg-accent);
   border: 1px solid #353550;
+}
+
+.leaflet-control-zoom {
+  top: 10px !important;
+  bottom: auto !important;
+  margin-top: 60px !important;
 }
 
 .leaflet-control-zoom a {
@@ -3752,25 +3830,25 @@ a {
   }
 }
 
-/* Styles pour les placeholders blancs */
+/* Styles pour les placeholders en mode sombre */
 .input-placeholder-white::placeholder {
-  color: white;
-  opacity: 0.7;
+  color: #8a94a4;
+  opacity: 1;
 }
 
 .input-placeholder-white::-webkit-input-placeholder {
-  color: white;
-  opacity: 0.7;
+  color: #8a94a4;
+  opacity: 1;
 }
 
 .input-placeholder-white::-moz-placeholder {
-  color: white;
-  opacity: 0.7;
+  color: #8a94a4;
+  opacity: 1;
 }
 
 .input-placeholder-white:-ms-input-placeholder {
-  color: white;
-  opacity: 0.7;
+  color: #8a94a4;
+  opacity: 1;
 }
 
 
@@ -3799,5 +3877,299 @@ a {
         margin-bottom: 20px!important;
     }
     
+}
+
+/* Styles pour la page Mentions légales et Politique de confidentialité */
+.mentions-legales-section {
+    min-height: calc(100vh - 88px);
+}
+
+.mentions-legales-section h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.mentions-legales-section h2 {
+    font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+}
+
+.mentions-legales-section h3 {
+    font-size: clamp(1.1rem, 2vw, 1.2rem);
+}
+
+.mentions-legales-section table {
+    font-size: 0.9rem;
+    min-width: 100%;
+}
+
+.mentions-legales-section table th,
+.mentions-legales-section table td {
+    font-size: 0.85rem;
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+}
+
+/* Conteneur de tableaux avec défilement horizontal */
+.mentions-legales-section div[style*="overflowX"],
+.mentions-legales-section div[style*="overflow-x"],
+.mentions-legales-section div[style*="overflowX: auto"],
+.mentions-legales-section div[style*="overflow-x: auto"] {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--orange-primary) rgba(255, 255, 255, 0.1);
+}
+
+.mentions-legales-section div[style*="overflowX"]::-webkit-scrollbar,
+.mentions-legales-section div[style*="overflow-x"]::-webkit-scrollbar {
+    height: 8px;
+}
+
+.mentions-legales-section div[style*="overflowX"]::-webkit-scrollbar-track,
+.mentions-legales-section div[style*="overflow-x"]::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.mentions-legales-section div[style*="overflowX"]::-webkit-scrollbar-thumb,
+.mentions-legales-section div[style*="overflow-x"]::-webkit-scrollbar-thumb {
+    background: var(--orange-primary);
+    border-radius: 4px;
+}
+
+.mentions-legales-section div[style*="overflowX"]::-webkit-scrollbar-thumb:hover,
+.mentions-legales-section div[style*="overflow-x"]::-webkit-scrollbar-thumb:hover {
+    background: var(--orange-secondary);
+}
+
+@media screen and (max-width: 768px) {
+    .mentions-legales-section {
+        padding: var(--spacing-xl) 0 !important;
+    }
+    
+    .mentions-legales-section .container > div {
+        padding: 0 var(--spacing-md) !important;
+    }
+    
+    .mentions-legales-section .container > div > div {
+        padding: var(--spacing-lg) var(--spacing-md) !important;
+        border-radius: 12px !important;
+    }
+    
+    .mentions-legales-section h1 {
+        font-size: 1.75rem !important;
+        margin-bottom: var(--spacing-md) !important;
+    }
+    
+    .mentions-legales-section h2 {
+        font-size: 1.25rem !important;
+        margin-bottom: var(--spacing-sm) !important;
+    }
+    
+    .mentions-legales-section h3 {
+        font-size: 1.1rem !important;
+    }
+    
+    .mentions-legales-section p,
+    .mentions-legales-section li {
+        font-size: 0.9rem !important;
+        line-height: 1.6 !important;
+    }
+    
+    .mentions-legales-section ul {
+        padding-left: var(--spacing-md) !important;
+    }
+    
+    .mentions-legales-section > div > div > div > div {
+        margin-bottom: var(--spacing-lg) !important;
+    }
+    
+    /* Conteneur de tableaux responsive - transformation en cartes */
+    .mentions-legales-section div[style*="overflowX"],
+    .mentions-legales-section div[style*="overflow-x"] {
+        overflow-x: visible !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Cacher le thead sur mobile */
+    .mentions-legales-section table thead {
+        display: none !important;
+    }
+    
+    /* Transformer les lignes en cartes */
+    .mentions-legales-section table,
+    .mentions-legales-section table tbody,
+    .mentions-legales-section table tr {
+        display: block !important;
+        width: 100% !important;
+    }
+    
+    .mentions-legales-section table {
+        border: none !important;
+        background: transparent !important;
+        border-radius: 0 !important;
+    }
+    
+    /* Chaque ligne devient une carte */
+    .mentions-legales-section table tbody tr {
+        background: rgba(0, 0, 0, 0.2) !important;
+        border: 1px solid #353550 !important;
+        border-radius: 8px !important;
+        margin-bottom: var(--spacing-md) !important;
+        padding: var(--spacing-md) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: var(--spacing-sm) !important;
+    }
+    
+    /* Chaque cellule devient un bloc avec label */
+    .mentions-legales-section table tbody td {
+        display: block !important;
+        width: 100% !important;
+        padding: 0 !important;
+        border: none !important;
+        font-size: 0.85rem !important;
+        line-height: 1.6 !important;
+    }
+    
+    /* Ajouter les labels avant chaque cellule en utilisant data-label */
+    .mentions-legales-section table tbody td::before {
+        content: attr(data-label);
+        display: block;
+        font-weight: 600;
+        color: var(--orange-primary);
+        margin-bottom: 6px;
+        font-size: 0.8rem;
+    }
+    
+    /* Si pas de data-label, utiliser les labels par défaut pour le premier tableau */
+    .mentions-legales-section table tbody td:not([data-label]):nth-child(1)::before {
+        content: "Finalité :";
+    }
+    
+    .mentions-legales-section table tbody td:not([data-label]):nth-child(2)::before {
+        content: "Base légale :";
+    }
+    
+    .mentions-legales-section table tbody td:not([data-label]):nth-child(3)::before {
+        content: "Durée de conservation :";
+    }
+}
+
+/* Styles pour la barre de progression - Mobile vs Desktop */
+@media (max-width: 768px) {
+    /* Afficher la section au-dessus de la carte sur mobile */
+    .progress-section-mobile {
+        display: flex !important;
+        order: 1 !important;
+    }
+    
+    /* Masquer l'overlay sur la carte sur mobile */
+    .progress-overlay-desktop,
+    .iris-map-container .progress-overlay-desktop,
+    div.progress-overlay-desktop {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+    
+    /* Sur mobile, forcer l'ordre : ATTENTION puis progression puis carte */
+    .iris-left-column {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    .iris-left-column > div:first-of-type {
+        order: 0 !important; /* ATTENTION en premier */
+    }
+    
+    .iris-left-column .progress-section-mobile {
+        order: 1 !important; /* Progression en deuxième */
+    }
+    
+    /* Masquer la grille en haut sur mobile */
+    .iris-header-grid {
+        display: none !important;
+    }
+    
+    /* Afficher la section Comment procéder dans la colonne gauche sur mobile */
+    .iris-comment-proceder-mobile {
+        display: block !important;
+        order: 0.5 !important; /* Après ATTENTION (0) et avant progression (1) */
+    }
+    
+    .iris-left-column .iris-map-container {
+        order: 2 !important; /* Carte en dernier */
+        overflow: visible !important; /* Permettre aux boutons de dépasser */
+        min-height: 350px !important; /* Réduire la hauteur sur mobile */
+        max-height: 400px !important; /* Limiter la hauteur maximale */
+    }
+    
+    /* Section Tracé GPS - après la carte */
+    .iris-trace-section {
+        order: 3 !important; /* Après la carte */
+    }
+    
+    /* S'assurer que les boutons de la carte sont visibles sur mobile */
+    .iris-map-container {
+        position: relative !important;
+    }
+    
+    /* Réduire la hauteur du conteneur de la carte Leaflet sur mobile */
+    .iris-map-container > div {
+        max-height: 400px !important;
+    }
+    
+    .iris-map-container .leaflet-container {
+        height: 350px !important;
+        max-height: 400px !important;
+    }
+    
+    /* S'assurer que les boutons personnalisés de la carte sont visibles */
+    .iris-map-container > div[style*="position: absolute"] {
+        z-index: 10000 !important;
+        display: block !important;
+    }
+    
+    /* Texte source des logements - Mobile */
+    .source-logements-text {
+        bottom: 8px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        position: absolute !important;
+    }
+}
+
+@media (min-width: 769px) {
+    /* Masquer la section au-dessus de la carte sur desktop */
+    .progress-section-mobile {
+        display: none !important;
+    }
+    
+    /* Afficher l'overlay sur la carte sur desktop */
+    .progress-overlay-desktop {
+        display: flex !important;
+        z-index: 999 !important; /* Inférieur au header (z-index: 1000) */
+    }
+
+    .leaflet-control-container button svg{
+        width: 180px!important;
+        height: 180px!important;
+    }
+}
+
+/* Animation pour le toast de copie */
+@keyframes slideInDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 

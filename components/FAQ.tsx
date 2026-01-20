@@ -4,12 +4,12 @@ import { useState } from 'react'
 
 const faqs = [
   { question: 'Les Stop Pub sont-ils respectés ?', answer: 'S\'agissant des documents municipaux et politiques, la distribution est réalisée dans l\'ensemble des BAL, même avec présence de Stop Pub. Par contre, pour la dissémination de documents publicitaires, nous appliquons rigoureusement la loi et ne déposons rien dans les boîtes aux lettres affichant l\'autocollant Stop Pub.' },
-  { question: 'Quelle est la date limite de livraison avant le démarrage de la distribution ?', answer: 'Vos imprimés peuvent être réceptionnés dans nos centres de distribution au plus tard 24 heures avant le démarrage de la diffusion en BAL.' },
-  { question: 'Faites-vous de la distribution groupée ?', answer: 'Non, nous pratiquons exclusivement la distribution isolée. Votre document est distribué seul, sans être mélangé à d\'autres publicités de masse.' },
-  { question: 'Quelle est la durée d\'une distribution ?', answer: 'Le délai est fonction du nombre d\'exemplaires. Généralement, nous traitons 30 000 foyers en 4-5 jours. Pour des volumes plus importants, nous ajustons nos ressources afin de garantir le respect des délais prévus.' },
+  { question: 'Quelle est la date limite de livraison avant le démarrage de la distribution ?', answer: 'Vos imprimés peuvent être réceptionnés dans nos centres de distribution ou chez vous le jour même, avant 10h00 (le jour J).' },
+  { question: 'Faites-vous de la distribution groupée ?', answer: 'Oui, cette plateforme a été conçue pour vous proposer une distribution mutualisée afin de réduire les coûts.' },
+  { question: 'Quelle est la durée d\'une distribution ?', answer: 'Le délai dépend du nombre d\'exemplaires. Généralement, nous traitons 10 000 foyers en 3 à 4 jours, hors intempéries.' },
   { question: 'Que se passe-t-il en cas d\'intempéries ?', answer: 'Nous nous adaptons aux conditions météo. Nos équipes sont équipées de chariots spécifiques avec protections contre la pluie, ce qui nous permet de continuer par légère pluie. Cependant, en cas d\'intempéries importantes, nous sommes forcés d\'interrompre provisoirement afin de garantir que vos documents soient toujours distribués propres et lisibles.' },
   { question: 'Accédez-vous aux immeubles sécurisés ?', answer: 'Oui. Nos équipes ont les moyens d\'accès requis, ce qui nous permet de pénétrer dans tous les bâtiments et de distribuer la totalité de la zone pour la distribution.' },
-  { question: 'Proposez-vous un suivi GPS ?', answer: 'Oui. Notre système propriétaire de géolocalisation est opérationnel, avec cartographie des secteurs. Cela nous permet d\'avoir une vue en temps réel sur toutes nos équipes et de produire des rapports précis. Par ce moyen, nous offrons une prestation traçable et fiable.' },
+  { question: 'Faites-vous l\'impression de flyers ?', answer: 'Oui. Lors de la sélection d\'une tournée, nous vous proposons une option de mise en page et d\'impression.' },
   { question: 'Quelle est votre offre ?', answer: 'Nous assurons une prestation globale allant de la création graphique (prospectus, dépliants, magazines, journaux, etc.) à la fabrication dans nos ateliers. Nous effectuons alors la diffusion en BAL, aussi bien pour les commerçants, artisans, mairies, communautés de communes, métropoles que pour les départements.' }
 ]
 

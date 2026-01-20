@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { isValidFrenchPhone } from '@/lib/phoneValidation'
+import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 
 interface SelectedIris {
   code: string
@@ -35,7 +36,7 @@ export default function ConfirmationPage() {
     ville: ''
   })
   const [selectedFlyerFormat, setSelectedFlyerFormat] = useState<'A5' | 'A6' | null>(null)
-  const [flyerType, setFlyerType] = useState<'A5' | 'A6' | 'catalogue supermarché' | null>(null)
+  const [flyerType, setFlyerType] = useState<'A4' | 'A5' | 'A6' | 'Catalogue' | 'Bulletins Municipal' | 'Autre' | null>(null)
   const [phoneError, setPhoneError] = useState(false)
 
   // Grilles tarifaires d'impression
@@ -129,6 +130,68 @@ export default function ConfirmationPage() {
       router.push('/tournees')
     }
   }, [router])
+
+  // Préremplir les champs avec les données du profil utilisateur si les champs sont vides
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !storedData) return
+
+    const loadUserProfile = async () => {
+      try {
+        // Vérifier l'authentification
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (userError || !user) return
+
+        // Charger le profil utilisateur
+        const { data: profileData, error: profileError } = await supabase
+          .from('france_distri_user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single()
+
+        if (profileError || !profileData) {
+          // Si pas de profil, essayer de récupérer depuis les participations récentes
+          const { data: participations, error: participationsError } = await supabase
+            .from('france_distri_participations')
+            .select('flyer_entreprise, flyer_telephone, flyer_address_rue, flyer_address_code_postal, flyer_address_ville')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+
+          if (participations && participations.length > 0) {
+            const latestParticipation = participations[0] as any
+            // Préremplir uniquement si les champs sont vides
+            setFlyerEntreprise(prev => prev || latestParticipation.flyer_entreprise || '')
+            setFlyerTelephone(prev => prev || latestParticipation.flyer_telephone || '')
+            setFlyerAddress(prev => ({
+              rue: prev.rue || latestParticipation.flyer_address_rue || '',
+              codePostal: prev.codePostal || latestParticipation.flyer_address_code_postal || '',
+              ville: prev.ville || latestParticipation.flyer_address_ville || ''
+            }))
+          }
+          // Préremplir l'email avec l'email de l'utilisateur si vide
+          setFlyerEmail(prev => prev || user.email || '')
+          return
+        }
+
+        // Préremplir avec les données du profil uniquement si les champs sont vides
+        const typedProfileData = profileData as { entreprise?: string; telephone?: string; adresse_rue?: string; adresse_code_postal?: string; adresse_ville?: string; [key: string]: any }
+        
+        setFlyerEntreprise(prev => prev || typedProfileData.entreprise || '')
+        setFlyerTelephone(prev => prev || typedProfileData.telephone || '')
+        setFlyerAddress(prev => ({
+          rue: prev.rue || typedProfileData.adresse_rue || '',
+          codePostal: prev.codePostal || typedProfileData.adresse_code_postal || '',
+          ville: prev.ville || typedProfileData.adresse_ville || ''
+        }))
+        // Préremplir l'email avec l'email de l'utilisateur si vide
+        setFlyerEmail(prev => prev || user.email || '')
+      } catch (error) {
+        console.error('Erreur lors du chargement du profil utilisateur:', error)
+      }
+    }
+
+    loadUserProfile()
+  }, [storedData]) // Ne s'exécuter qu'une fois après le chargement des données depuis localStorage
 
 
 
@@ -241,10 +304,10 @@ export default function ConfirmationPage() {
 
   if (!storedData) {
     return (
-      <section className="tournees-section" style={{ marginTop: '88px', padding: 'var(--spacing-4xl) 0', background: 'var(--gradient-dark)' }}>
+      <section style={{ marginTop: '88px', padding: 'var(--spacing-4xl) 0', background: 'linear-gradient(135deg, #0B1220 0%, #0E1A2F 50%, #111C34 100%)', minHeight: 'calc(100vh - 88px)' }}>
         <div className="container">
           <div style={{ textAlign: 'center', padding: 'var(--spacing-4xl) 0' }}>
-            <p style={{ color: 'var(--text-secondary)' }}>Chargement...</p>
+            <p style={{ color: '#CBD5E1' }}>Chargement...</p>
           </div>
         </div>
       </section>
@@ -252,102 +315,132 @@ export default function ConfirmationPage() {
   }
 
   return (
-      <section className="tournees-section" style={{ marginTop: '88px', padding: 'var(--spacing-4xl) 0', background: 'var(--gradient-dark)' }}>
+      <section style={{ marginTop: '88px', padding: '60px 20px', background: 'linear-gradient(135deg, #0B1220 0%, #0E1A2F 50%, #111C34 100%)', minHeight: 'calc(100vh - 88px)' }}>
       <div className="container">
-        <div className="confirmation-page-container" style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '980px', margin: '0 auto' }}>
           <Link 
             href={`/tournees/${encodeURIComponent(storedData.villeName.toLowerCase())}/${storedData.tourneeIndex}/secteurs`}
-            className="back-link"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#CBD5E1',
+              textDecoration: 'none',
+              fontSize: '15px',
+              marginBottom: '32px',
+              fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+            }}
           >
-            <span className="back-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-              </svg>
-            </span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}>
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
             Retour à la sélection
           </Link>
 
-          <div className="section-header">
-            <h1 className="section-title">Confirmer votre sélection</h1>
-            <p className="section-subtitle">
-              Tournée du {storedData.tourneeDateDebut} au {storedData.tourneeDateFin} - {storedData.villeName}
-            </p>
-          </div>
+          <div style={{
+            background: '#222b44',
+            borderRadius: '20px',
+            padding: '40px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.45)',
+            border: '1px solid rgba(255,255,255,0.06)'
+          }}>
+            <div style={{ marginBottom: '32px' }}>
+              <h1 style={{
+                fontSize: '26px',
+                fontWeight: 600,
+                color: '#F8FAFC',
+                marginBottom: '12px',
+                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
+              }}>
+                Confirmer votre sélection
+              </h1>
+              <p style={{
+                fontSize: '15px',
+                color: '#CBD5E1',
+                lineHeight: 1.6,
+                fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+              }}>
+                Tournée du {storedData.tourneeDateDebut} au {storedData.tourneeDateFin} - {storedData.villeName}
+              </p>
+            </div>
 
           {/* Résumé de la sélection */}
           <div style={{
-            background: 'var(--bg-accent)',
-            borderRadius: '12px',
-            padding: 'var(--spacing-md) var(--spacing-lg)',
-            marginBottom: 'var(--spacing-xl)',
-            border: '2px solid #52607f'
+            background: '#1a2236',
+            borderRadius: '14px',
+            padding: '24px',
+            marginBottom: '32px',
+            border: '2px solid rgba(255,255,255,0.08)'
           }}>
             <h2 style={{
-              color: 'var(--text-primary)',
-              marginBottom: 'var(--spacing-md)',
-              fontSize: '18px',
-              fontWeight: 600
+              color: '#F8FAFC',
+              marginBottom: '20px',
+              fontSize: '24px',
+              fontWeight: 700,
+              paddingBottom: '12px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
             }}>
               Résumé de votre sélection
             </h2>
 
-            <div className="confirmation-grid-2cols" style={{
+            <div style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              gap: 'var(--spacing-md)',
-              marginBottom: 'var(--spacing-md)'
+              gap: '24px',
+              marginBottom: '24px'
             }}>
               <div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '4px', fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
+                <div style={{ color: '#94A3B8', fontSize: '15px', marginBottom: '8px', fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
                   Secteurs IRIS sélectionnés
                 </div>
-                <div style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
+                <div style={{ color: '#F8FAFC', fontSize: '24px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                   {storedData.selectedIris.length}
                 </div>
               </div>
               <div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '4px', fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
+                <div style={{ color: '#94A3B8', fontSize: '15px', marginBottom: '8px', fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
                   Total logements
                 </div>
-                <div style={{ color: 'var(--orange-primary)', fontSize: '20px', fontWeight: 700 }}>
+                <div style={{ color: '#F97316', fontSize: '24px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                   {Math.round(storedData.totalLogements).toLocaleString('fr-FR')}
                 </div>
               </div>
             </div>
 
             <div style={{
-              paddingTop: 'var(--spacing-md)',
-              borderTop: '1px solid #52607f'
+              paddingTop: '20px',
+              borderTop: '1px solid rgba(255,255,255,0.06)'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: calculatePrintingCost > 0 ? 'var(--spacing-sm)' : '0' }}>
-                <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: calculatePrintingCost > 0 ? '16px' : '0' }}>
+                <span style={{ color: '#94A3B8', fontSize: '15px', fontWeight: 500, fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
                   Coût de distribution
                 </span>
-                <span style={{ color: 'var(--orange-primary)', fontSize: '24px', fontWeight: 700 }}>
+                <span style={{ color: '#CBD5E1', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                   {storedData.coutDistribution.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
                 </span>
               </div>
               {calculatePrintingCost > 0 && selectedFlyerFormat && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-sm)' }}>
-                  <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <span style={{ color: '#94A3B8', fontSize: '15px', fontWeight: 500, fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
                     Coût d'impression (Format {selectedFlyerFormat})
                   </span>
-                  <span style={{ color: 'var(--orange-primary)', fontSize: '24px', fontWeight: 700 }}>
+                  <span style={{ color: '#CBD5E1', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                     {calculatePrintingCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ HT
                   </span>
                 </div>
               )}
               {(calculatePrintingCost > 0 || storedData.coutDistribution > 0) && (
                 <div style={{
-                  paddingTop: 'var(--spacing-sm)',
-                  borderTop: '2px solid var(--orange-primary)',
-                  marginTop: 'var(--spacing-sm)'
+                  paddingTop: '20px',
+                  borderTop: '1px solid rgba(240, 234, 229, 0.3)',
+                  marginTop: '16px'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-primary)', fontSize: '18px', fontWeight: 700 }}>
+                    <span style={{ color: '#F8FAFC', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                       Total
                     </span>
-                    <span style={{ color: 'var(--orange-primary)', fontSize: '28px', fontWeight: 700 }}>
+                    <span style={{ color: 'rgba(249, 115, 22, 1)', fontSize: '26px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                       {(storedData.coutDistribution + calculatePrintingCost).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
                     </span>
                   </div>
@@ -357,51 +450,65 @@ export default function ConfirmationPage() {
           </div>
 
           {/* Section flyer */}
-          <div className="confirmation-flyer-section" style={{
-            background: 'var(--bg-accent)',
-            borderRadius: '16px',
-            paddingTop: 'var(--spacing-xl)',
-            paddingBottom: 'var(--spacing-xl)',
-            paddingLeft: 'var(--spacing-xl)',
-            paddingRight: 'var(--spacing-xl)',
-            marginBottom: 'var(--spacing-xl)',
-            border: '2px solid #52607f'
+          <div style={{
+            marginBottom: '32px'
           }}>
             <h2 style={{
-              color: 'var(--text-primary)',
-              marginBottom: 'var(--spacing-md)',
-              fontSize: '20px',
-              fontWeight: 600
+              color: '#F8FAFC',
+              marginBottom: '20px',
+              fontSize: '24px',
+              fontWeight: 700,
+              paddingBottom: '12px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
             }}>
               Informations sur votre flyer
             </h2>
 
             <p style={{ 
-              color: 'var(--text-secondary)', 
-              marginBottom: 'var(--spacing-lg)',
-              fontSize: '16px'
+              color: '#CBD5E1', 
+              marginBottom: '24px',
+              fontSize: '15px',
+              lineHeight: 1.6,
+              fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
             }}>
               Avez-vous déjà un flyer prêt pour cette distribution ?
             </p>
 
-            <div className="confirmation-buttons-row" style={{ 
+            <div style={{ 
               display: 'flex', 
-              gap: 'var(--spacing-md)',
-              marginBottom: 'var(--spacing-lg)'
+              gap: '12px',
+              marginBottom: '32px'
             }}>
               <button
                 onClick={() => setHasFlyer(true)}
                 style={{
                   flex: 1,
-                  padding: 'var(--spacing-md)',
-                  borderRadius: '8px',
-                  border: hasFlyer === true ? '2px solid var(--orange-primary)' : '2px solid #52607f',
-                  background: hasFlyer === true ? 'rgba(251, 109, 37, 0.1)' : '#18253f',
-                  color: 'var(--text-primary)',
+                  padding: '12px 16px',
+                  borderRadius: '999px',
+                  border: hasFlyer === true ? '2px solid #F97316' : '1px solid #434d5e',
+                  background: hasFlyer === true ? '#F97316' : '#1a2236',
+                  color: hasFlyer === true ? '#FFFFFF' : '#E2E8F0',
                   cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: hasFlyer === true ? 600 : 400,
-                  transition: 'all 0.2s'
+                  fontSize: '15px',
+                  fontWeight: hasFlyer === true ? 600 : 500,
+                  fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                  boxShadow: hasFlyer === true 
+                    ? '0 0 0 1px rgba(249,115,22,0.65)' 
+                    : '0 0 0 1px rgba(15,23,42,0.8)',
+                  transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (hasFlyer === true) return
+                  e.currentTarget.style.background = '#1b2435'
+                  e.currentTarget.style.borderColor = '#F97316'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={(e) => {
+                  if (hasFlyer === true) return
+                  e.currentTarget.style.background = '#1a2236'
+                  e.currentTarget.style.borderColor = '#434d5e'
+                  e.currentTarget.style.transform = 'translateY(0)'
                 }}
               >
                 Oui, j'ai un flyer
@@ -410,15 +517,31 @@ export default function ConfirmationPage() {
                 onClick={() => setHasFlyer(false)}
                 style={{
                   flex: 1,
-                  padding: 'var(--spacing-md)',
-                  borderRadius: '8px',
-                  border: hasFlyer === false ? '2px solid var(--orange-primary)' : '2px solid #52607f',
-                  background: hasFlyer === false ? 'rgba(251, 109, 37, 0.1)' : '#18253f',
-                  color: 'var(--text-primary)',
+                  padding: '12px 16px',
+                  borderRadius: '999px',
+                  border: hasFlyer === false ? '2px solid #F97316' : '1px solid #434d5e',
+                  background: hasFlyer === false ? '#F97316' : '#1a2236',
+                  color: hasFlyer === false ? '#FFFFFF' : '#E2E8F0',
                   cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: hasFlyer === false ? 600 : 400,
-                  transition: 'all 0.2s'
+                  fontSize: '15px',
+                  fontWeight: hasFlyer === false ? 600 : 500,
+                  fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                  boxShadow: hasFlyer === false 
+                    ? '0 0 0 1px rgba(249,115,22,0.65)' 
+                    : '0 0 0 1px rgba(15,23,42,0.8)',
+                  transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (hasFlyer === false) return
+                  e.currentTarget.style.background = '#1b2435'
+                  e.currentTarget.style.borderColor = '#F97316'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={(e) => {
+                  if (hasFlyer === false) return
+                  e.currentTarget.style.background = '#1a2236'
+                  e.currentTarget.style.borderColor = '#434d5e'
+                  e.currentTarget.style.transform = 'translateY(0)'
                 }}
               >
                 Non, je dois en créer un
@@ -426,37 +549,40 @@ export default function ConfirmationPage() {
             </div>
 
             {hasFlyer === true && (
-              <div className="confirmation-flyer-subsection" style={{
-                background: '#181d32',
-                borderRadius: '12px',
-                padding: 'var(--spacing-lg)',
-                border: '1px solid #52607f',
-                marginTop: 'var(--spacing-lg)'
+              <div style={{
+                background: '#1a2236',
+                borderRadius: '14px',
+                padding: '24px',
+                border: '2px solid rgba(255,255,255,0.06)',
+                marginTop: '24px'
               }}>
                 <h3 style={{
-                  color: 'var(--orange-primary)',
-                  marginBottom: 'var(--spacing-md)',
-                  fontSize: '17px',
-                  fontWeight: 600
+                  color: '#F8FAFC',
+                  marginBottom: '20px',
+                  fontSize: '22px',
+                  fontWeight: 700,
+                  paddingBottom: '12px',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
                 }}>
                   Informations sur votre flyer
                 </h3>
 
                 <div style={{
-                  background: 'rgba(251, 109, 37, 0.1)',
-                  border: '1px solid var(--orange-primary)',
-                  borderRadius: '8px',
-                  padding: 'var(--spacing-md)',
-                  marginBottom: 'var(--spacing-lg)'
+                  background: 'rgba(249,115,22,0.08)',
+                  border: '1px solid rgba(249,115,22,0.35)',
+                  borderRadius: '10px',
+                  padding: '16px',
+                  marginBottom: '24px'
                 }}>
                   <p style={{
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                    lineHeight: '1.6',
+                    color: '#FED7AA',
+                    fontSize: '15px',
+                    lineHeight: 1.6,
                     margin: 0,
                     fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                   }}>
-                    <strong style={{ color: 'var(--orange-primary)', fontWeight: 600 }}>ℹ️ Récupération du flyer :</strong> Nous récupérons votre flyer dans un rayon maximum de <strong style={{ fontWeight: 600 }}>10 km</strong> autour du secteur de distribution. Le colis doit être <strong style={{ fontWeight: 600 }}>hors palette</strong>. Si votre flyer est conditionné sur palette, la récupération se fait uniquement sur rendez-vous au <strong style={{ fontWeight: 600 }}><a href="tel:+33978288462" style={{ color: 'var(--orange-primary)', textDecoration: 'none' }}>09 78 28 84 62</a></strong>.
+                    ℹ️ <strong style={{ fontWeight: 600, color: '#F97316' }}>Récupération du flyer</strong> : Nous récupérons vos flyers dans un rayon maximum de <strong style={{ fontWeight: 600, color: '#F97316' }}>10 km</strong> autour du secteur de distribution. Vos colis doivent être <strong style={{ fontWeight: 600, color: '#F97316' }}>hors palette</strong>. Nous vous contacterons <strong style={{ fontWeight: 600, color: '#F97316' }}>une semaine avant le démarrage</strong> afin d'organiser l'enlèvement de vos flyers <strong style={{ fontWeight: 600, color: '#F97316' }}>le jour J</strong>, au lancement de votre distribution.
                   </p>
                 </div>
 
@@ -469,10 +595,11 @@ export default function ConfirmationPage() {
                   <div>
                     <label style={{
                       display: 'block',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
+                      color: '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: 500,
-                      marginBottom: '8px'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Titre du flyer *
                     </label>
@@ -484,12 +611,12 @@ export default function ConfirmationPage() {
                       required
                       style={{
                         width: '100%',
-                        padding: '12px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #52607f',
-                        background: 'var(--bg-accent)',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid #434d5e',
+                        background: '#1a2236',
+                        color: '#F8FAFC',
+                        fontSize: '15px',
                         fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                       }}
                       className="input-placeholder-white"
@@ -498,10 +625,11 @@ export default function ConfirmationPage() {
                   <div>
                     <label style={{
                       display: 'block',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
+                      color: '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: 500,
-                      marginBottom: '8px'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Entreprise *
                     </label>
@@ -513,12 +641,12 @@ export default function ConfirmationPage() {
                       required
                       style={{
                         width: '100%',
-                        padding: '12px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #52607f',
-                        background: 'var(--bg-accent)',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid #434d5e',
+                        background: '#1a2236',
+                        color: '#F8FAFC',
+                        fontSize: '15px',
                         fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                       }}
                       className="input-placeholder-white"
@@ -527,10 +655,11 @@ export default function ConfirmationPage() {
                   <div>
                     <label style={{
                       display: 'block',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
+                      color: '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: 500,
-                      marginBottom: '8px'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Email *
                     </label>
@@ -542,12 +671,12 @@ export default function ConfirmationPage() {
                       required
                       style={{
                         width: '100%',
-                        padding: '12px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #52607f',
-                        background: 'var(--bg-accent)',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid #434d5e',
+                        background: '#1a2236',
+                        color: '#F8FAFC',
+                        fontSize: '15px',
                         fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                       }}
                       className="input-placeholder-white"
@@ -556,10 +685,11 @@ export default function ConfirmationPage() {
                   <div>
                     <label style={{
                       display: 'block',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
+                      color: '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: 500,
-                      marginBottom: '8px'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Téléphone *
                     </label>
@@ -585,7 +715,7 @@ export default function ConfirmationPage() {
                         width: '100%',
                         padding: '12px 12px',
                         borderRadius: '8px',
-                        border: phoneError ? '2px solid #F44336' : '1px solid #52607f',
+                        border: phoneError ? '2px solid #F44336' : '1px solid rgba(255,255,255,0.12)',
                         background: 'var(--bg-accent)',
                         color: 'var(--text-primary)',
                         fontSize: '14px',
@@ -597,43 +727,50 @@ export default function ConfirmationPage() {
                   <div>
                     <label style={{
                       display: 'block',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
+                      color: '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: 500,
-                      marginBottom: '8px'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Type de flyer *
                     </label>
                     <select
                       value={flyerType || ''}
-                      onChange={(e) => setFlyerType(e.target.value as 'A5' | 'A6' | 'catalogue supermarché' | null)}
+                      onChange={(e) => setFlyerType(e.target.value as 'A4' | 'A5' | 'A6' | 'Catalogue' | 'Bulletins Municipal' | 'Autre' | null)}
                       required
                       style={{
                         width: '100%',
-                        padding: '12px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #52607f',
-                        background: 'var(--bg-accent)',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid #434d5e',
+                        background: '#1a2236',
+                        color: '#F8FAFC',
+                        fontSize: '15px',
                         fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
                         cursor: 'pointer'
                       }}
                     >
                       <option value="" disabled>Sélectionnez un type</option>
+                      <option value="A4">A4</option>
                       <option value="A5">A5</option>
                       <option value="A6">A6</option>
-                      <option value="catalogue supermarché">Catalogue supermarché</option>
+                      <option value="Catalogue">Catalogue</option>
+                      <option value="Bulletins Municipal">Bulletins Municipal</option>
+                      <option value="Autre">Autre</option>
                     </select>
                   </div>
                 </div>
 
                 <h4 style={{
-                  color: 'var(--text-primary)',
-                  marginBottom: 'var(--spacing-md)',
-                  marginTop: 'var(--spacing-lg)',
-                  fontSize: '16px',
-                  fontWeight: 600
+                  color: '#F8FAFC',
+                  marginBottom: '16px',
+                  marginTop: '24px',
+                  fontSize: '18px',
+                  fontWeight: 500,
+                  paddingBottom: '12px',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
                 }}>
                   Adresse de récupération *
                 </h4>
@@ -647,10 +784,11 @@ export default function ConfirmationPage() {
                   <div>
                     <label style={{
                       display: 'block',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
+                      color: '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: 500,
-                      marginBottom: '8px'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Rue *
                     </label>
@@ -662,12 +800,12 @@ export default function ConfirmationPage() {
                       required
                       style={{
                         width: '100%',
-                        padding: '12px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #52607f',
-                        background: 'var(--bg-accent)',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid #434d5e',
+                        background: '#1a2236',
+                        color: '#F8FAFC',
+                        fontSize: '15px',
                         fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                       }}
                       className="input-placeholder-white"
@@ -676,10 +814,11 @@ export default function ConfirmationPage() {
                   <div>
                     <label style={{
                       display: 'block',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
+                      color: '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: 500,
-                      marginBottom: '8px'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Code postal *
                     </label>
@@ -692,12 +831,12 @@ export default function ConfirmationPage() {
                       required
                       style={{
                         width: '100%',
-                        padding: '12px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #52607f',
-                        background: 'var(--bg-accent)',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid #434d5e',
+                        background: '#1a2236',
+                        color: '#F8FAFC',
+                        fontSize: '15px',
                         fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                       }}
                       className="input-placeholder-white"
@@ -706,10 +845,11 @@ export default function ConfirmationPage() {
                   <div>
                     <label style={{
                       display: 'block',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
+                      color: '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: 500,
-                      marginBottom: '8px'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Ville *
                     </label>
@@ -721,12 +861,12 @@ export default function ConfirmationPage() {
                       required
                       style={{
                         width: '100%',
-                        padding: '12px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #52607f',
-                        background: 'var(--bg-accent)',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid #434d5e',
+                        background: '#1a2236',
+                        color: '#F8FAFC',
+                        fontSize: '15px',
                         fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                       }}
                       className="input-placeholder-white"
@@ -737,18 +877,21 @@ export default function ConfirmationPage() {
             )}
 
             {hasFlyer === false && (
-              <div className="confirmation-flyer-subsection" style={{
-                background: '#181d32',
-                borderRadius: '12px',
-                padding: 'var(--spacing-lg)',
-                border: '1px solid #52607f',
-                marginTop: 'var(--spacing-lg)'
+              <div style={{
+                background: '#1a2236',
+                borderRadius: '14px',
+                padding: '24px',
+                border: '2px solid rgba(255,255,255,0.06)',
+                marginTop: '24px'
               }}>
                 <h3 style={{
-                  color: 'var(--orange-primary)',
-                  marginBottom: 'var(--spacing-md)',
-                  fontSize: '17px',
-                  fontWeight: 600
+                  color: '#F8FAFC',
+                  marginBottom: '20px',
+                  fontSize: '22px',
+                  fontWeight: 700,
+                  paddingBottom: '12px',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
                 }}>
                   Informations sur votre flyer
                 </h3>
@@ -762,10 +905,11 @@ export default function ConfirmationPage() {
                   <div>
                     <label style={{
                       display: 'block',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
+                      color: '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: 500,
-                      marginBottom: '8px'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Titre du flyer *
                     </label>
@@ -777,12 +921,12 @@ export default function ConfirmationPage() {
                       required
                       style={{
                         width: '100%',
-                        padding: '12px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #52607f',
-                        background: 'var(--bg-accent)',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid #434d5e',
+                        background: '#1a2236',
+                        color: '#F8FAFC',
+                        fontSize: '15px',
                         fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                       }}
                       className="input-placeholder-white"
@@ -791,10 +935,11 @@ export default function ConfirmationPage() {
                   <div>
                     <label style={{
                       display: 'block',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
+                      color: '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: 500,
-                      marginBottom: '8px'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Entreprise *
                     </label>
@@ -806,12 +951,12 @@ export default function ConfirmationPage() {
                       required
                       style={{
                         width: '100%',
-                        padding: '12px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #52607f',
-                        background: 'var(--bg-accent)',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid #434d5e',
+                        background: '#1a2236',
+                        color: '#F8FAFC',
+                        fontSize: '15px',
                         fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                       }}
                       className="input-placeholder-white"
@@ -820,10 +965,11 @@ export default function ConfirmationPage() {
                   <div>
                     <label style={{
                       display: 'block',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
+                      color: '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: 500,
-                      marginBottom: '8px'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Email *
                     </label>
@@ -835,12 +981,12 @@ export default function ConfirmationPage() {
                       required
                       style={{
                         width: '100%',
-                        padding: '12px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #52607f',
-                        background: 'var(--bg-accent)',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid #434d5e',
+                        background: '#1a2236',
+                        color: '#F8FAFC',
+                        fontSize: '15px',
                         fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                       }}
                       className="input-placeholder-white"
@@ -849,10 +995,11 @@ export default function ConfirmationPage() {
                   <div>
                     <label style={{
                       display: 'block',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
+                      color: '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: 500,
-                      marginBottom: '8px'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Téléphone *
                     </label>
@@ -878,8 +1025,8 @@ export default function ConfirmationPage() {
                         width: '100%',
                         padding: '12px 12px',
                         borderRadius: '8px',
-                        border: phoneError ? '2px solid #F44336' : '1px solid #52607f',
-                        background: 'var(--bg-accent)',
+                        border: phoneError ? '2px solid #F44336' : '1px solid rgba(255,255,255,0.12)',
+                        background: '#1a2236',
                         color: 'var(--text-primary)',
                         fontSize: '14px',
                         fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
@@ -890,10 +1037,14 @@ export default function ConfirmationPage() {
                 </div>
 
                 <h3 style={{
-                  color: 'var(--text-primary)',
-                  marginBottom: 'var(--spacing-md)',
+                  color: '#F8FAFC',
+                  marginBottom: '20px',
                   fontSize: '18px',
-                  marginTop: 'var(--spacing-lg)'
+                  fontWeight: 500,
+                  paddingBottom: '12px',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  marginTop: '24px',
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
                 }}>
                   Grille tarifaire pour la création de flyer
                 </h3>
@@ -907,55 +1058,43 @@ export default function ConfirmationPage() {
                   <div
                     onClick={() => setSelectedFlyerFormat('A6')}
                     style={{
-                      background: selectedFlyerFormat === 'A6' ? 'rgba(251, 109, 37, 0.1)' : 'var(--bg-accent)',
-                      borderRadius: '8px',
-                      padding: 'var(--spacing-md)',
-                      border: selectedFlyerFormat === 'A6' ? '2px solid var(--orange-primary)' : '1px solid #52607f',
+                      background: selectedFlyerFormat === 'A6' ? 'rgba(249,115,22,0.08)' : '#242940',
+                      borderRadius: '10px',
+                      padding: '20px',
+                      border: selectedFlyerFormat === 'A6' ? '2px solid #F97316' : '1px solid rgba(255,255,255,0.12)',
                       textAlign: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (selectedFlyerFormat !== 'A6') {
-                        e.currentTarget.style.borderColor = 'var(--orange-primary)'
-                        e.currentTarget.style.background = 'rgba(251, 109, 37, 0.05)'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (selectedFlyerFormat !== 'A6') {
-                        e.currentTarget.style.borderColor = '#52607f'
-                        e.currentTarget.style.background = 'var(--bg-accent)'
-                      }
+                      cursor: 'pointer'
                     }}
                   >
                     <div style={{
-                      color: 'var(--orange-primary)',
+                      color: '#F97316',
                       fontSize: '24px',
                       fontWeight: 600,
-                      marginBottom: 'var(--spacing-xs)'
+                      marginBottom: '8px',
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
                     }}>
                       90€ HT
                     </div>
                     <div style={{
-                      color: selectedFlyerFormat === 'A6' ? 'var(--orange-primary)' : 'var(--text-secondary)',
-                      fontSize: '14px',
+                      color: selectedFlyerFormat === 'A6' ? '#F97316' : '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: selectedFlyerFormat === 'A6' ? 600 : 500,
-                      marginBottom: '4px',
+                      marginBottom: '6px',
                       fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Mise en page A6
                     </div>
                     <div style={{
-                      color: 'var(--text-tertiary)',
-                      fontSize: '12px',
-                      marginBottom: '4px',
+                      color: '#94A3B8',
+                      fontSize: '13px',
+                      marginBottom: '6px',
                       fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       105 x 148 mm
                     </div>
                     <div style={{
-                      color: 'var(--text-secondary)',
-                      fontSize: '14px',
+                      color: '#94A3B8',
+                      fontSize: '15px',
                       fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Recto/Verso
@@ -965,56 +1104,43 @@ export default function ConfirmationPage() {
                   <div
                     onClick={() => setSelectedFlyerFormat('A5')}
                     style={{
-                      background: selectedFlyerFormat === 'A5' ? 'rgba(251, 109, 37, 0.1)' : 'var(--bg-accent)',
-                      borderRadius: '8px',
-                      padding: 'var(--spacing-md)',
-                      border: selectedFlyerFormat === 'A5' ? '2px solid var(--orange-primary)' : '1px solid #52607f',
+                      background: selectedFlyerFormat === 'A5' ? 'rgba(249,115,22,0.08)' : '#242940',
+                      borderRadius: '10px',
+                      padding: '20px',
+                      border: selectedFlyerFormat === 'A5' ? '2px solid #F97316' : '1px solid rgba(255,255,255,0.12)',
                       textAlign: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (selectedFlyerFormat !== 'A5') {
-                        e.currentTarget.style.borderColor = 'var(--orange-primary)'
-                        e.currentTarget.style.background = 'rgba(251, 109, 37, 0.05)'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (selectedFlyerFormat !== 'A5') {
-                        e.currentTarget.style.borderColor = '#52607f'
-                        e.currentTarget.style.background = 'var(--bg-accent)'
-                      }
+                      cursor: 'pointer'
                     }}
                   >
                     <div style={{
-                      color: 'var(--orange-primary)',
+                      color: '#F97316',
                       fontSize: '24px',
                       fontWeight: 600,
-                      marginBottom: 'var(--spacing-xs)',
+                      marginBottom: '8px',
                       fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
                     }}>
                       130€ HT
                     </div>
                     <div style={{
-                      color: selectedFlyerFormat === 'A5' ? 'var(--orange-primary)' : 'var(--text-secondary)',
-                      fontSize: '14px',
+                      color: selectedFlyerFormat === 'A5' ? '#F97316' : '#CBD5E1',
+                      fontSize: '15px',
                       fontWeight: selectedFlyerFormat === 'A5' ? 600 : 500,
-                      marginBottom: '4px',
+                      marginBottom: '6px',
                       fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Mise en page A5
                     </div>
                     <div style={{
-                      color: 'var(--text-tertiary)',
-                      fontSize: '12px',
-                      marginBottom: '4px',
+                      color: '#94A3B8',
+                      fontSize: '13px',
+                      marginBottom: '6px',
                       fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       148 x 210 mm
                     </div>
                     <div style={{
-                      color: 'var(--text-secondary)',
-                      fontSize: '14px',
+                      color: '#94A3B8',
+                      fontSize: '15px',
                       fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
                       Recto/Verso
@@ -1022,21 +1148,19 @@ export default function ConfirmationPage() {
                   </div>
                 </div>
 
-                <div 
-                  className="flyer-info-pulse"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--spacing-sm)',
-                    marginTop: 'var(--spacing-md)',
-                    padding: 'var(--spacing-md)',
-                    background: 'rgba(251, 109, 37, 0.1)',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(251, 109, 37, 0.3)'
-                  }}
-                >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  marginTop: '20px',
+                  marginBottom: '24px',
+                  padding: '16px',
+                  background: 'rgba(249,115,22,0.08)',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(249,115,22,0.35)'
+                }}>
                   <div style={{
-                    background: 'var(--orange-primary)',
+                    background: '#F97316',
                     borderRadius: '50%',
                     width: '24px',
                     height: '24px',
@@ -1058,13 +1182,13 @@ export default function ConfirmationPage() {
                     </svg>
                   </div>
                   <p style={{
-                    color: 'var(--text-secondary)',
-                    fontSize: '14px',
-                    lineHeight: '1.6',
+                    color: '#FED7AA',
+                    fontSize: '15px',
+                    lineHeight: 1.6,
                     margin: 0,
                     fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                   }}>
-                    Vous devez fournir le <strong style={{ fontWeight: 700, color: 'var(--text-primary)' }}>logo</strong>, les <strong style={{ fontWeight: 700, color: 'var(--text-primary)' }}>images</strong> et les <strong style={{ fontWeight: 700, color: 'var(--text-primary)' }}>textes</strong> à l'adresse <a href="mailto:contact@distribution-flyers.fr" style={{ color: 'var(--orange-primary)', textDecoration: 'none', fontWeight: 600 }}>contact@distribution-flyers.fr</a>. Après confirmation de votre sélection, notre équipe vous contactera pour discuter de vos besoins en création de flyer.
+                    Vous devez fournir le <strong style={{ fontWeight: 600 }}>logo</strong>, les <strong style={{ fontWeight: 600 }}>images</strong> et les <strong style={{ fontWeight: 600 }}>textes</strong> à l'adresse <a href="mailto:contact@distribution-flyers.fr" style={{ color: '#F97316', textDecoration: 'none', fontWeight: 600 }}>contact@distribution-flyers.fr</a>. Après confirmation de votre sélection, notre équipe vous contactera pour discuter de vos besoins en création de flyer.
                   </p>
                 </div>
               </div>
@@ -1072,49 +1196,53 @@ export default function ConfirmationPage() {
           </div>
 
           {/* Bouton de confirmation */}
-          <div className="confirmation-buttons-row" style={{
+          <div style={{
             display: 'flex',
-            gap: 'var(--spacing-md)',
-            justifyContent: 'flex-end'
+            gap: '12px',
+            justifyContent: 'flex-end',
+            marginTop: '32px',
+            paddingTop: '32px',
+            borderTop: '1px solid rgba(255,255,255,0.06)'
           }}>
             <Link
-              className="confirmation-button-cancel"
               href={`/tournees/${encodeURIComponent(storedData.villeName.toLowerCase())}/${storedData.tourneeIndex}/secteurs`}
               style={{
-                padding: '8px var(--spacing-lg)',
-                borderRadius: '8px',
-                border: '1px solid #52607f',
-                background: 'var(--bg-accent)',
-                color: 'var(--text-primary)',
+                padding: '12px 26px',
+                borderRadius: '12px',
+                border: '1px solid rgba(255,255,255,0.15)',
+                background: 'transparent',
+                color: '#CBD5E1',
                 cursor: 'pointer',
-                fontSize: '16px',
+                fontSize: '15px',
+                fontWeight: 500,
                 textDecoration: 'none',
-                display: 'inline-block'
+                display: 'inline-block',
+                fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
               }}
             >
               Annuler
             </Link>
             <button
-              className="confirmation-button-continue"
               onClick={handleContinue}
               disabled={hasFlyer === null || (hasFlyer && (!flyerTitle.trim() || !flyerEntreprise.trim() || !flyerEmail.trim() || !flyerTelephone.trim() || !flyerType || !flyerAddress.rue.trim() || !flyerAddress.codePostal.trim() || !flyerAddress.ville.trim())) || (!hasFlyer && (!flyerTitle.trim() || !flyerEntreprise.trim() || !flyerEmail.trim() || !flyerTelephone.trim() || !selectedFlyerFormat))}
               style={{
-                padding: '8px var(--spacing-lg)',
-                borderRadius: '8px',
+                padding: '12px 26px',
+                borderRadius: '12px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #fb6d25 0%, #e85a1a 100%)',
-                color: 'var(--text-primary)',
+                background: '#F97316',
+                color: '#FFFFFF',
                 cursor: hasFlyer === null || (hasFlyer && (!flyerTitle.trim() || !flyerEntreprise.trim() || !flyerTelephone.trim() || !flyerType || !flyerAddress.rue.trim() || !flyerAddress.codePostal.trim() || !flyerAddress.ville.trim())) || (!hasFlyer && (!flyerTitle.trim() || !flyerEntreprise.trim() || !flyerTelephone.trim() || !selectedFlyerFormat))
                   ? 'not-allowed' 
                   : 'pointer',
-                fontSize: '16px',
-                fontWeight: 600,
+                fontSize: '15px',
+                fontWeight: 500,
                 opacity: hasFlyer === null || (hasFlyer && (!flyerTitle.trim() || !flyerEntreprise.trim() || !flyerEmail.trim() || !flyerTelephone.trim() || !flyerType || !flyerAddress.rue.trim() || !flyerAddress.codePostal.trim() || !flyerAddress.ville.trim())) || (!hasFlyer && (!flyerTitle.trim() || !flyerEntreprise.trim() || !flyerEmail.trim() || !flyerTelephone.trim() || !selectedFlyerFormat)) ? 0.5 : 1,
-                boxShadow: '0 4px 12px rgba(251, 109, 37, 0.35)'
+                fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
               }}
             >
               Continuer
             </button>
+          </div>
           </div>
         </div>
       </div>

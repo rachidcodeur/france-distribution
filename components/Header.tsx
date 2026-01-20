@@ -106,11 +106,29 @@ export default function Header() {
     setIsMenuOpen(false)
   }
 
-  const handleAuthClick = () => {
+  const handleSignupClick = () => {
     if (user) {
       router.push('/dashboard')
+      return
+    }
+    // Utiliser replace si on est déjà sur /login pour éviter d'ajouter une entrée dans l'historique
+    if (typeof window !== 'undefined' && window.location.pathname === '/login') {
+      router.replace('/login?mode=signup')
     } else {
-      router.push('/login')
+      router.push('/login?mode=signup')
+    }
+  }
+
+  const handleSigninClick = () => {
+    if (user) {
+      router.push('/dashboard')
+      return
+    }
+    // Utiliser replace si on est déjà sur /login pour éviter d'ajouter une entrée dans l'historique
+    if (typeof window !== 'undefined' && window.location.pathname === '/login') {
+      router.replace('/login?mode=signin')
+    } else {
+      router.push('/login?mode=signin')
     }
   }
 
@@ -146,6 +164,34 @@ export default function Header() {
             <li><Link href="/#services" className="nav-link" onClick={closeMenu}>Services</Link></li>
             <li><Link href="/#faq" className="nav-link" onClick={closeMenu}>FAQ</Link></li>
             <li><Link href="/contact" className="nav-link" onClick={closeMenu}>Contact</Link></li>
+            {!user && !authLoading && (
+              <li className="mobile-auth-buttons">
+                <button 
+                  className="btn btn-primary nav-cta" 
+                  style={{ padding: '13px 16px', width: '100%' }}
+                  onClick={() => {
+                    closeMenu()
+                    handleSignupClick()
+                  }}
+                >
+                  Inscription
+                </button>
+                <button 
+                  className="btn btn-secondary nav-cta"
+                  style={{ 
+                    padding: '13px 16px',
+                    border: '1px solid var(--orange-primary)',
+                    width: '100%'
+                  }}
+                  onClick={() => {
+                    closeMenu()
+                    handleSigninClick()
+                  }}
+                >
+                  Connexion
+                </button>
+              </li>
+            )}
           </ul>
           <div className="nav-right" style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'flex-end', marginLeft: 'auto' }}>
             {authLoading ? (
@@ -366,13 +412,26 @@ export default function Header() {
                 `}</style>
               </div>
             ) : (
-              <button 
-                className="btn btn-primary nav-cta" 
-                id="headerCta"
-                onClick={handleAuthClick}
-              >
-                Créer mon compte
-              </button>
+              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                <button 
+                  className="btn btn-primary nav-cta" 
+                  id="headerCta"
+                  style={{ padding: '13px 16px' }}
+                  onClick={handleSignupClick}
+                >
+                  Inscription
+                </button>
+                <button 
+                  className="btn btn-secondary nav-cta"
+                  style={{ 
+                    padding: '13px 16px',
+                    border: '1px solid var(--orange-primary)'
+                  }}
+                  onClick={handleSigninClick}
+                >
+                  Connexion
+                </button>
+              </div>
             )}
             <button 
               className="mobile-menu-toggle" 

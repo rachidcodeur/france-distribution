@@ -88,7 +88,6 @@ export default function Services() {
               </div>
               <h3 className="service-title">{service.title}</h3>
               <p className="service-description">{service.description}</p>
-              <a href="#" className="service-link">{service.link}</a>
             </div>
           ))}
         </div>

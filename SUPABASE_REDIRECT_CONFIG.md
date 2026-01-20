@@ -17,14 +17,14 @@ Pour que la redirection fonctionne correctement, vous devez configurer l'URL de 
 1. Allez dans **Supabase Dashboard** → **Authentication** → **URL Configuration**
 2. Dans **Redirect URLs**, ajoutez :
    ```
-   http://localhost:3000/auth/callback
+   https://france-distribution-flyers.fr/auth/callback
    https://votre-domaine.com/auth/callback
    ```
    (Remplacez `votre-domaine.com` par votre domaine de production)
 
 3. Dans **Site URL**, configurez :
    ```
-   http://localhost:3000
+   https://france-distribution-flyers.fr
    ```
    (ou votre URL de production)
 

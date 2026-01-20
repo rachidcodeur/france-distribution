@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS france_distri_user_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  email TEXT,
   nom TEXT,
   prenom TEXT,
   entreprise TEXT,

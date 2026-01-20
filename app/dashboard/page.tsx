@@ -27,6 +27,7 @@ interface Participation {
   total_logements: number
   cout_distribution: number
   status: 'pending' | 'confirmed' | 'cancelled' | 'bouclee'
+  devis_numero?: string | null
   has_flyer: boolean
   flyer_title: string | null
   flyer_entreprise: string | null
@@ -39,6 +40,8 @@ interface Participation {
   updated_at: string
   iris_selections?: (IrisSelection & { participant_count?: number })[]
   iris_counts?: Map<string, number> // Nombre de participants par IRIS
+  tourneeParticipantsCount?: number // Nombre de participants uniques sur la tournée (tous secteurs confondus)
+  tourneeLimiteDate?: string | null // Date limite d'inscription (J-15) formatée FR
   isTourneeBloquee?: boolean // Si la tournée est bloquée (15 jours avant)
   isTourneePassee?: boolean // Si la date de la tournée est passée
 }
@@ -47,7 +50,8 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   pending: { label: 'En attente', color: '#ff9800' },
   confirmed: { label: 'Confirmée', color: '#4caf50' },
   cancelled: { label: 'Annulée', color: '#f44336' },
-  bouclee: { label: 'Bouclée', color: '#2196f3' }
+  bouclee: { label: 'Bouclée', color: '#2196f3' },
+  valide: { label: 'Validée', color: '#4caf50' }
 }
 
 function DashboardContent() {
@@ -59,11 +63,420 @@ function DashboardContent() {
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
+  const [statusFilter, setStatusFilter] = useState<'actives' | 'toutes' | 'annulees'>('actives')
   const [cancelModal, setCancelModal] = useState<{ isOpen: boolean; participationId: string | null; villeName: string }>({
     isOpen: false,
     participationId: null,
     villeName: ''
   })
+
+  const handleDownloadDevis = async (participation: Participation) => {
+    try {
+      const { default: jsPDF } = await import('jspdf')
+
+      const formatDateFR = (dateStr: string) => {
+        if (!dateStr) return ''
+        // Si format ISO (YYYY-MM-DD...), convertir en FR
+        if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+          const d = new Date(dateStr)
+          if (!Number.isNaN(d.getTime())) {
+            return d.toLocaleDateString('fr-FR')
+          }
+        }
+        return dateStr
+      }
+
+      // Grilles tarifaires d'impression
+      const printingPricesA6 = [
+        { quantity: 1000, price: 117.0 },
+        { quantity: 1500, price: 135.0 },
+        { quantity: 2500, price: 123.0 },
+        { quantity: 5000, price: 150.0 },
+        { quantity: 7500, price: 222.0 },
+        { quantity: 10000, price: 283.5 },
+        { quantity: 15000, price: 417.0 },
+        { quantity: 20000, price: 531.0 },
+        { quantity: 30000, price: 789.0 },
+        { quantity: 40000, price: 1015.5 },
+        { quantity: 50000, price: 1252.5 },
+        { quantity: 60000, price: 1503.0 },
+        { quantity: 70000, price: 1752.0 },
+        { quantity: 80000, price: 2002.5 },
+        { quantity: 90000, price: 2241.0 },
+        { quantity: 100000, price: 2490.0 },
+        { quantity: 200000, price: 4965.0 },
+      ]
+
+      const printingPricesA5 = [
+        { quantity: 1000, price: 73.5 },
+        { quantity: 1500, price: 93.0 },
+        { quantity: 2500, price: 72.0 },
+        { quantity: 5000, price: 105.0 },
+        { quantity: 7500, price: 117.0 },
+        { quantity: 10000, price: 147.0 },
+        { quantity: 15000, price: 198.0 },
+        { quantity: 20000, price: 252.0 },
+        { quantity: 30000, price: 375.0 },
+        { quantity: 40000, price: 498.0 },
+        { quantity: 50000, price: 598.5 },
+        { quantity: 60000, price: 717.0 },
+        { quantity: 70000, price: 835.5 },
+        { quantity: 80000, price: 925.5 },
+        { quantity: 90000, price: 1029.0 },
+        { quantity: 100000, price: 1143.0 },
+        { quantity: 200000, price: 2280.0 },
+      ]
+
+      const flyerFormat =
+        participation.needs_flyer_creation && (participation.flyer_format === 'A5' || participation.flyer_format === 'A6')
+          ? (participation.flyer_format as 'A5' | 'A6')
+          : null
+
+      const totalLogements = Math.round(participation.total_logements || 0)
+
+      const calculateFlyerCreationCost = () => {
+        if (!participation.needs_flyer_creation || !flyerFormat) return 0
+        return flyerFormat === 'A6' ? 90 : 130
+      }
+
+      const calculatePrintingCost = () => {
+        if (!participation.needs_flyer_creation || !flyerFormat) return 0
+        const prices = flyerFormat === 'A6' ? printingPricesA6 : printingPricesA5
+        for (const tier of prices) {
+          if (totalLogements <= tier.quantity) return tier.price
+        }
+        return prices[prices.length - 1].price
+      }
+
+      const creationCost = calculateFlyerCreationCost()
+      const printingCost = calculatePrintingCost()
+
+      const doc = new jsPDF()
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      let yPosition = 20
+
+      // Couleurs
+      const orangeColor: [number, number, number] = [249, 115, 22]
+      const textColor: [number, number, number] = [51, 51, 51]
+
+      // Charger le logo
+      try {
+        const logoUrl = '/logo-france-distribution.webp'
+        const logoImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => resolve(img)
+          img.onerror = reject
+          img.src = logoUrl
+        })
+
+        const canvas = document.createElement('canvas')
+        canvas.width = logoImg.width
+        canvas.height = logoImg.height
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(logoImg, 0, 0)
+          const logoDataUrl = canvas.toDataURL('image/png')
+
+          doc.setFillColor(20, 31, 51) // #141f33
+          doc.rect(0, 0, pageWidth, 50, 'F')
+
+          const maxLogoHeight = 35
+          const logoAspectRatio = logoImg.width / logoImg.height
+          const logoHeight = maxLogoHeight
+          const logoWidth = logoHeight * logoAspectRatio
+          const logoX = (pageWidth - logoWidth) / 2
+          doc.addImage(logoDataUrl, 'PNG', logoX, 7.5, logoWidth, logoHeight)
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement du logo:', error)
+        doc.setFillColor(20, 31, 51) // #141f33
+        doc.rect(0, 0, pageWidth, 50, 'F')
+      }
+
+      yPosition = 65
+
+      const checkPageBreak = (requiredSpace: number) => {
+        if (yPosition + requiredSpace > pageHeight - 40) {
+          doc.addPage()
+          yPosition = 20
+          return true
+        }
+        return false
+      }
+
+      // Client
+      const hasClientInfo =
+        !!participation.flyer_title ||
+        !!participation.flyer_entreprise ||
+        !!participation.flyer_address_rue ||
+        !!participation.flyer_address_code_postal ||
+        !!participation.flyer_address_ville ||
+        !!participation.flyer_email ||
+        !!participation.flyer_telephone
+
+      if (hasClientInfo) {
+        doc.setFontSize(13)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(...orangeColor)
+        doc.text('Client:', 20, yPosition)
+        yPosition += 10
+
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(...textColor)
+
+        if (participation.flyer_entreprise) {
+          doc.setFont('helvetica', 'bold')
+          doc.text(participation.flyer_entreprise, 20, yPosition)
+          yPosition += 7
+        }
+
+        if (participation.flyer_title) {
+          doc.setFont('helvetica', 'normal')
+          doc.text(participation.flyer_title, 20, yPosition)
+          yPosition += 7
+        }
+
+        // Adresse (si présente)
+        if (participation.flyer_address_rue) {
+          doc.setFont('helvetica', 'normal')
+          doc.text(participation.flyer_address_rue, 20, yPosition)
+          yPosition += 6
+        }
+        const addressLine = `${participation.flyer_address_code_postal || ''} ${participation.flyer_address_ville || ''}`.trim()
+        if (addressLine) {
+          doc.text(addressLine, 20, yPosition)
+          yPosition += 6
+        }
+
+        if (participation.flyer_email) {
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(...orangeColor)
+          const emailLabel = 'Email:'
+          const emailLabelWidth = doc.getTextWidth(emailLabel)
+          doc.text(emailLabel, 20, yPosition)
+          doc.setDrawColor(...orangeColor)
+          doc.setLineWidth(0.3)
+          doc.line(20, yPosition + 1, 20 + emailLabelWidth, yPosition + 1)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(...textColor)
+          doc.text(participation.flyer_email, 20 + emailLabelWidth + 3, yPosition)
+          yPosition += 8
+        }
+
+        if (participation.flyer_telephone) {
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(...orangeColor)
+          const phoneLabel = 'Téléphone:'
+          const phoneLabelWidth = doc.getTextWidth(phoneLabel)
+          doc.text(phoneLabel, 20, yPosition)
+          doc.setDrawColor(...orangeColor)
+          doc.setLineWidth(0.3)
+          doc.line(20, yPosition + 1, 20 + phoneLabelWidth, yPosition + 1)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(...textColor)
+          doc.text(participation.flyer_telephone, 20 + phoneLabelWidth + 3, yPosition)
+          yPosition += 8
+        }
+
+        yPosition += 10
+      }
+
+      // Informations France Distribution (droite)
+      const rightColumnX = pageWidth - 80
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...textColor)
+      doc.text('France Distribution', rightColumnX, 65)
+
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...orangeColor)
+      const emailLabelFD = 'Email:'
+      const emailLabelFDWidth = doc.getTextWidth(emailLabelFD)
+      doc.text(emailLabelFD, rightColumnX, 75)
+      doc.setDrawColor(...orangeColor)
+      doc.setLineWidth(0.3)
+      doc.line(rightColumnX, 76, rightColumnX + emailLabelFDWidth, 76)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...textColor)
+      doc.text('contact@distribution-flyers.fr', rightColumnX + emailLabelFDWidth + 3, 75)
+
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...orangeColor)
+      const phoneLabelFD = 'Téléphone:'
+      const phoneLabelFDWidth = doc.getTextWidth(phoneLabelFD)
+      doc.text(phoneLabelFD, rightColumnX, 83)
+      doc.setDrawColor(...orangeColor)
+      doc.setLineWidth(0.3)
+      doc.line(rightColumnX, 84, rightColumnX + phoneLabelFDWidth, 84)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...textColor)
+      doc.text('09 78 28 84 62', rightColumnX + phoneLabelFDWidth + 3, 83)
+
+      yPosition = Math.max(yPosition, 95)
+      yPosition += 15
+
+      checkPageBreak(30)
+
+      // Titre devis
+      doc.setFontSize(20)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...orangeColor)
+      const devisText = 'DEVIS'
+      const devisWidth = doc.getTextWidth(devisText)
+      doc.text(devisText, pageWidth / 2, yPosition, { align: 'center' })
+      doc.setDrawColor(...orangeColor)
+      doc.setLineWidth(1)
+      doc.line((pageWidth - devisWidth) / 2, yPosition + 2, (pageWidth + devisWidth) / 2, yPosition + 2)
+
+      const devisNumero =
+        participation.devis_numero ||
+        (participation.id ? `FD-${participation.id.slice(0, 8).toUpperCase()}` : 'FD-XXXXXXX')
+
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...textColor)
+      doc.text(`N° de devis : ${devisNumero}`, pageWidth / 2, yPosition + 10, { align: 'center' })
+
+      yPosition += 26
+
+      // Infos tournée
+      checkPageBreak(20)
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...textColor)
+      doc.text('Tournée:', 20, yPosition)
+      doc.setFont('helvetica', 'normal')
+      doc.text(participation.ville_name, 20 + doc.getTextWidth('Tournée: ') + 2, yPosition)
+      yPosition += 10
+
+      doc.setFont('helvetica', 'bold')
+      doc.text('Période:', 20, yPosition)
+      doc.setFont('helvetica', 'normal')
+      doc.text(
+        `Du ${formatDateFR(participation.tournee_date_debut)} au ${formatDateFR(participation.tournee_date_fin)}`,
+        20 + doc.getTextWidth('Période: ') + 2,
+        yPosition
+      )
+      yPosition += 18
+
+      // Séparateur
+      checkPageBreak(5)
+      doc.setDrawColor(...orangeColor)
+      doc.setLineWidth(0.8)
+      doc.line(20, yPosition, pageWidth - 20, yPosition)
+      yPosition += 15
+
+      // Résumé sélection
+      checkPageBreak(30)
+      doc.setFontSize(15)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...orangeColor)
+      const resumeText = 'Résumé de votre sélection'
+      const resumeWidth = doc.getTextWidth(resumeText)
+      doc.text(resumeText, 20, yPosition)
+      doc.setDrawColor(...orangeColor)
+      doc.setLineWidth(0.5)
+      doc.line(20, yPosition + 2, 20 + resumeWidth, yPosition + 2)
+      yPosition += 15
+
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...textColor)
+
+      doc.setFont('helvetica', 'bold')
+      doc.text('Secteurs IRIS sélectionnés:', 20, yPosition)
+      doc.setFont('helvetica', 'normal')
+      doc.text(`${participation.iris_selections?.length || 0}`, 20 + doc.getTextWidth('Secteurs IRIS sélectionnés: ') + 2, yPosition)
+      yPosition += 10
+
+      doc.setFont('helvetica', 'bold')
+      const totalLogementsFormatted = totalLogements.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+      doc.text('Total logements:', 20, yPosition)
+      doc.setFont('helvetica', 'normal')
+      doc.text(totalLogementsFormatted, 20 + doc.getTextWidth('Total logements: ') + 2, yPosition)
+      yPosition += 20
+
+      // Détails des coûts
+      checkPageBreak(40)
+      doc.setFontSize(15)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...orangeColor)
+      const coutsText = 'Détail des coûts'
+      const coutsWidth = doc.getTextWidth(coutsText)
+      doc.text(coutsText, 20, yPosition)
+      doc.setDrawColor(...orangeColor)
+      doc.setLineWidth(0.5)
+      doc.line(20, yPosition + 2, 20 + coutsWidth, yPosition + 2)
+      yPosition += 15
+
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...textColor)
+
+      const distCost = participation.cout_distribution.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      doc.setFont('helvetica', 'bold')
+      doc.text('Coût de distribution:', 20, yPosition)
+      doc.setFont('helvetica', 'normal')
+      doc.text(`${distCost}€`, pageWidth - 40, yPosition, { align: 'right' })
+      yPosition += 10
+
+      if (creationCost > 0 && flyerFormat) {
+        checkPageBreak(10)
+        const creationCostFormatted = creationCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        doc.setFont('helvetica', 'bold')
+        doc.text(`Coût de création (Format ${flyerFormat}):`, 20, yPosition)
+        doc.setFont('helvetica', 'normal')
+        doc.text(`${creationCostFormatted}€ HT`, pageWidth - 40, yPosition, { align: 'right' })
+        yPosition += 10
+      }
+
+      if (printingCost > 0 && flyerFormat) {
+        checkPageBreak(10)
+        const printCostFormatted = printingCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        doc.setFont('helvetica', 'bold')
+        doc.text(`Coût d'impression (Format ${flyerFormat}):`, 20, yPosition)
+        doc.setFont('helvetica', 'normal')
+        doc.text(`${printCostFormatted}€ HT`, pageWidth - 40, yPosition, { align: 'right' })
+        yPosition += 10
+      }
+
+      yPosition += 10
+      checkPageBreak(5)
+      doc.setDrawColor(...orangeColor)
+      doc.setLineWidth(0.8)
+      doc.line(20, yPosition, pageWidth - 20, yPosition)
+      yPosition += 15
+
+      const total = (participation.cout_distribution + creationCost + printingCost).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      doc.setFontSize(16)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...orangeColor)
+      doc.text('TOTAL:', 20, yPosition)
+      doc.setFontSize(18)
+      doc.text(`${total}€`, pageWidth - 40, yPosition, { align: 'right' })
+
+      // Pied de page
+      const footerY = pageHeight - 20
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'italic')
+      doc.setTextColor(150, 150, 150)
+      doc.text('Ce devis est valable 30 jours', pageWidth / 2, footerY, { align: 'center' })
+      doc.text('France Distribution - contact@distribution-flyers.fr', pageWidth / 2, footerY + 6, { align: 'center' })
+
+      const safeVille = participation.ville_name.replace(/\s+/g, '_')
+      const safeDate = formatDateFR(participation.tournee_date_debut).replace(/[\/\s]/g, '-')
+      const fileName = `Devis_France_Distribution_${safeVille}_${safeDate}.pdf`
+      doc.save(fileName)
+    } catch (err) {
+      console.error('Erreur lors de la génération du devis:', err)
+      setToast({ message: 'Impossible de générer le devis. Veuillez réessayer.', type: 'error' })
+      setTimeout(() => setToast(null), 3000)
+    }
+  }
 
   useEffect(() => {
     // Vérifier s'il y a un message de succès dans l'URL
@@ -143,14 +556,31 @@ function DashboardContent() {
         total_logements: Number(p.total_logements),
         cout_distribution: Number(p.cout_distribution),
         status: (String(p.status) as 'pending' | 'confirmed' | 'cancelled' | 'bouclee'),
+        devis_numero: p.devis_numero ? String(p.devis_numero) : null,
         has_flyer: p.has_flyer !== undefined ? Boolean(p.has_flyer) : false,
         needs_flyer_creation: p.needs_flyer_creation !== undefined ? Boolean(p.needs_flyer_creation) : false,
         flyer_title: p.flyer_title ? String(p.flyer_title) : null,
         flyer_entreprise: p.flyer_entreprise ? String(p.flyer_entreprise) : null,
-        flyer_address_rue: p.flyer_address?.rue ? String(p.flyer_address.rue) : null,
-        flyer_address_code_postal: p.flyer_address?.codePostal ? String(p.flyer_address.codePostal) : null,
-        flyer_address_ville: p.flyer_address?.ville ? String(p.flyer_address.ville) : null,
-        flyer_format: p.selected_flyer_format ? String(p.selected_flyer_format) : null,
+        flyer_address_rue: p.flyer_address_rue
+          ? String(p.flyer_address_rue)
+          : p.flyer_address?.rue
+            ? String(p.flyer_address.rue)
+            : null,
+        flyer_address_code_postal: p.flyer_address_code_postal
+          ? String(p.flyer_address_code_postal)
+          : p.flyer_address?.codePostal
+            ? String(p.flyer_address.codePostal)
+            : null,
+        flyer_address_ville: p.flyer_address_ville
+          ? String(p.flyer_address_ville)
+          : p.flyer_address?.ville
+            ? String(p.flyer_address.ville)
+            : null,
+        flyer_format: p.flyer_format
+          ? String(p.flyer_format)
+          : p.selected_flyer_format
+            ? String(p.selected_flyer_format)
+            : null,
         created_at: p.created_at ? String(p.created_at) : new Date().toISOString(),
         updated_at: p.updated_at ? String(p.updated_at) : new Date().toISOString()
       }))
@@ -213,7 +643,71 @@ function DashboardContent() {
         return aujourdhui > dateDebut
       }
 
-      // Compter les participants par IRIS pour chaque tournée
+      const formatDateFr = (date: Date): string => {
+        return date.toLocaleDateString('fr-FR', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        })
+      }
+
+      // Calculer le nombre de participants uniques (tous utilisateurs) et la date limite par tournée (ville + date)
+      const tourneeParticipantsCounts = new Map<string, number>()
+      const tourneeLimiteDates = new Map<string, string>()
+      const allTourneeIrisData = new Map<string, any[]>() // Stocker toutes les sélections IRIS par tournée
+      const tourneeKeys = new Set<string>()
+
+      typedParticipationsData.forEach((p) => {
+        const key = `${p.ville_name}|${p.tournee_date_debut}`
+        tourneeKeys.add(key)
+      })
+
+      for (const key of tourneeKeys) {
+        const [villeName, dateDebut] = key.split('|')
+
+        // Récupérer TOUTES les participations pour cette tournée (tous utilisateurs)
+        const { data: allTourneeParticipations, error: tourneeError } = await supabase
+          .from('france_distri_participations')
+          .select('id, tournee_date_debut')
+          .eq('ville_name', villeName)
+          .eq('tournee_date_debut', dateDebut)
+          .neq('status', 'cancelled')
+
+        if (tourneeError) {
+          console.error('Erreur lors du chargement du nombre de participants pour la tournée:', {
+            villeName,
+            dateDebut,
+            tourneeError
+          })
+          continue
+        }
+
+        const participantCount = allTourneeParticipations?.length || 0
+        tourneeParticipantsCounts.set(key, participantCount)
+
+        // Récupérer TOUTES les sélections IRIS pour toutes les participations de cette tournée
+        const allParticipationIds = allTourneeParticipations?.map(p => p.id) || []
+        if (allParticipationIds.length > 0) {
+          const { data: allIrisForTournee, error: irisTourneeError } = await supabase
+            .from('france_distri_iris_selections')
+            .select('*')
+            .in('participation_id', allParticipationIds)
+
+          if (!irisTourneeError && allIrisForTournee) {
+            allTourneeIrisData.set(key, allIrisForTournee)
+          }
+        }
+
+        // Calculer une date limite (15 jours avant la date de début) pour le message de partage
+        const tourneeDebut = parseFrenchDate(dateDebut)
+        if (tourneeDebut) {
+          const limite = new Date(tourneeDebut)
+          limite.setDate(limite.getDate() - 15)
+          tourneeLimiteDates.set(key, formatDateFr(limite))
+        }
+      }
+
+      // Compter les participants par IRIS pour chaque tournée (en utilisant TOUTES les participations)
       const participationsWithIris = typedParticipationsData.map(participation => {
         const participationIris = typedIrisData.filter(iris => iris.participation_id === participation.id)
         
@@ -221,26 +715,21 @@ function DashboardContent() {
         const irisCounts = new Map<string, number>()
         const irisParticipations = new Map<string, Set<string>>()
         
-        // Récupérer toutes les participations pour cette tournée
-        const tourneeParticipations = typedParticipationsData.filter(p => 
-          p.ville_name === participation.ville_name && 
-          p.tournee_date_debut === participation.tournee_date_debut &&
-          p.status !== 'cancelled'
-        )
-        const tourneeParticipationIds = tourneeParticipations.map(p => p.id)
+        // Récupérer toutes les sélections IRIS pour cette tournée (tous utilisateurs)
+        const tourneeKey = `${participation.ville_name}|${participation.tournee_date_debut}`
+        const allIrisForThisTournee = allTourneeIrisData.get(tourneeKey) || []
         
-        // Compter les participants par IRIS
-        irisData?.forEach((iris: any) => {
-          if (tourneeParticipationIds.includes(iris.participation_id)) {
-            const irisCode = iris.iris_code
-            if (!irisParticipations.has(irisCode)) {
-              irisParticipations.set(irisCode, new Set())
-            }
-            const participationSet = irisParticipations.get(irisCode)!
-            if (!participationSet.has(iris.participation_id)) {
-              participationSet.add(iris.participation_id)
-              irisCounts.set(irisCode, participationSet.size)
-            }
+        // Compter les participants par IRIS sur TOUTES les participations de la tournée
+        allIrisForThisTournee.forEach((iris: any) => {
+          const irisCode = iris.iris_code
+          if (!irisParticipations.has(irisCode)) {
+            irisParticipations.set(irisCode, new Set())
+          }
+          const participationSet = irisParticipations.get(irisCode)!
+          // Ajouter l'ID de participation pour compter les participants uniques par IRIS
+          if (!participationSet.has(iris.participation_id)) {
+            participationSet.add(iris.participation_id)
+            irisCounts.set(irisCode, participationSet.size)
           }
         })
         
@@ -249,11 +738,18 @@ function DashboardContent() {
           ...iris,
           participant_count: irisCounts.get(iris.iris_code) || 0
         }))
-        
+
+        // Nombre de participants uniques sur la tournée (tous utilisateurs, tous secteurs confondus)
+        // tourneeKey est déjà défini plus haut
+        const tourneeParticipantsCount = tourneeParticipantsCounts.get(tourneeKey) ?? 0
+        const tourneeLimiteDate = tourneeLimiteDates.get(tourneeKey) ?? null
+
         return {
           ...participation,
           iris_selections: irisSelectionsWithCounts,
           iris_counts: irisCounts,
+          tourneeParticipantsCount,
+          tourneeLimiteDate,
           isTourneeBloquee: isTourneeBloquee(participation.tournee_date_debut),
           isTourneePassee: isTourneePassee(participation.tournee_date_debut)
         }
@@ -445,6 +941,43 @@ function DashboardContent() {
                 }}>
                   Mon Dashboard
                 </h1>
+                <Link
+                  href="/parametres"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    background: 'transparent',
+                    border: '1px solid var(--orange-primary)',
+                    color: 'var(--orange-primary)',
+                    textDecoration: 'none',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                    transition: 'all 0.25s ease',
+                    marginBottom: 'var(--spacing-sm)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--orange-primary)'
+                    e.currentTarget.style.color = 'white'
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(251, 109, 37, 0.4)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.color = 'var(--orange-primary)'
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  Modifier mes informations
+                </Link>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
                   {user?.email && `Connecté en tant que ${user.email}`}
                 </p>
@@ -461,7 +994,7 @@ function DashboardContent() {
                   fontSize: '14px',
                   fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                 }}>
-                  Pour toute question urgente, appelez au
+                  Pour toute question, appelez au
                 </span>
                 <a
                   href="tel:+33978288462"
@@ -539,29 +1072,204 @@ function DashboardContent() {
                 </Link>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                {participations.map((participation) => {
-                  const isExpanded = expandedCards.has(participation.id)
-                  
-                  // Calculer le statut de la tournée basé sur les IRIS
-                  // Un IRIS n'est annulé que si la date est passée ET qu'il n'a pas >= 3 participants
-                  let tourneeStatus = participation.status
-                  if (participation.isTourneePassee && participation.iris_selections) {
-                    const atLeastOneIrisValide = participation.iris_selections.some(iris => (iris.participant_count || 0) >= 3)
-                    
-                    if (atLeastOneIrisValide && participation.iris_selections.length > 0) {
-                      tourneeStatus = 'bouclee' // Au moins un IRIS est validé
-                    } else if (participation.iris_selections.length > 0) {
-                      tourneeStatus = 'cancelled' // Aucun IRIS n'est validé et la date est passée
+              <>
+                {/* Tabs de filtrage par statut */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  marginBottom: 'var(--spacing-xl)'
+                }}>
+                  <div style={{
+                    display: 'inline-flex',
+                    gap: '4px',
+                    padding: '4px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }}>
+                    <button
+                      onClick={() => setStatusFilter('actives')}
+                      style={{
+                        padding: '10px 24px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: statusFilter === 'actives' 
+                          ? 'var(--orange-primary)' 
+                          : 'transparent',
+                        color: statusFilter === 'actives' ? 'white' : 'var(--text-secondary)',
+                        fontSize: '14px',
+                        fontWeight: statusFilter === 'actives' ? 600 : 500,
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: statusFilter === 'actives' 
+                          ? '0 2px 8px rgba(251, 109, 37, 0.3)' 
+                          : 'none',
+                        transform: statusFilter === 'actives' ? 'scale(1.02)' : 'scale(1)'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (statusFilter !== 'actives') {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+                          e.currentTarget.style.color = 'var(--text-primary)'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (statusFilter !== 'actives') {
+                          e.currentTarget.style.background = 'transparent'
+                          e.currentTarget.style.color = 'var(--text-secondary)'
+                        }
+                      }}
+                    >
+                      Actives
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('annulees')}
+                      style={{
+                        padding: '10px 24px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: statusFilter === 'annulees' 
+                          ? 'var(--orange-primary)' 
+                          : 'transparent',
+                        color: statusFilter === 'annulees' ? 'white' : 'var(--text-secondary)',
+                        fontSize: '14px',
+                        fontWeight: statusFilter === 'annulees' ? 600 : 500,
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: statusFilter === 'annulees' 
+                          ? '0 2px 8px rgba(251, 109, 37, 0.3)' 
+                          : 'none',
+                        transform: statusFilter === 'annulees' ? 'scale(1.02)' : 'scale(1)'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (statusFilter !== 'annulees') {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+                          e.currentTarget.style.color = 'var(--text-primary)'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (statusFilter !== 'annulees') {
+                          e.currentTarget.style.background = 'transparent'
+                          e.currentTarget.style.color = 'var(--text-secondary)'
+                        }
+                      }}
+                    >
+                      Annulées
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('toutes')}
+                      style={{
+                        padding: '10px 24px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: statusFilter === 'toutes' 
+                          ? 'var(--orange-primary)' 
+                          : 'transparent',
+                        color: statusFilter === 'toutes' ? 'white' : 'var(--text-secondary)',
+                        fontSize: '14px',
+                        fontWeight: statusFilter === 'toutes' ? 600 : 500,
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: statusFilter === 'toutes' 
+                          ? '0 2px 8px rgba(251, 109, 37, 0.3)' 
+                          : 'none',
+                        transform: statusFilter === 'toutes' ? 'scale(1.02)' : 'scale(1)'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (statusFilter !== 'toutes') {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+                          e.currentTarget.style.color = 'var(--text-primary)'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (statusFilter !== 'toutes') {
+                          e.currentTarget.style.background = 'transparent'
+                          e.currentTarget.style.color = 'var(--text-secondary)'
+                        }
+                      }}
+                    >
+                      Toutes
+                    </button>
+                  </div>
+                </div>
+
+                {/* Liste filtrée des participations */}
+                {(() => {
+                  // Calculer le statut réel de chaque participation et filtrer
+                  const participationsWithStatus = participations.map((participation) => {
+                    let tourneeStatus = participation.status
+                    if (participation.isTourneePassee && participation.iris_selections) {
+                      // Vérifier si au moins un IRIS a atteint le maximum (5 participants)
+                      const atLeastOneIrisBoucle = participation.iris_selections.some(iris => (iris.participant_count || 0) >= 5)
+                      // Vérifier si au moins un IRIS a atteint le minimum (3 participants)
+                      const atLeastOneIrisValide = participation.iris_selections.some(iris => (iris.participant_count || 0) >= 3)
+                      
+                      if (atLeastOneIrisBoucle && participation.iris_selections.length > 0) {
+                        tourneeStatus = 'bouclee' // Maximum atteint (5 participants)
+                      } else if (atLeastOneIrisValide && participation.iris_selections.length > 0) {
+                        tourneeStatus = 'valide' // Minimum atteint (3 participants) mais pas encore le maximum
+                      } else if (participation.iris_selections.length > 0) {
+                        tourneeStatus = 'cancelled' // Aucun IRIS n'a atteint le minimum
+                      }
+                    } else if (participation.isTourneeBloquee && participation.iris_selections) {
+                      // Vérifier si au moins un IRIS a atteint le maximum (5 participants)
+                      const atLeastOneIrisBoucle = participation.iris_selections.some(iris => (iris.participant_count || 0) >= 5)
+                      // Vérifier si au moins un IRIS a atteint le minimum (3 participants)
+                      const atLeastOneIrisValide = participation.iris_selections.some(iris => (iris.participant_count || 0) >= 3)
+                      
+                      if (atLeastOneIrisBoucle && participation.iris_selections.length > 0) {
+                        tourneeStatus = 'bouclee' // Maximum atteint (5 participants)
+                      } else if (atLeastOneIrisValide && participation.iris_selections.length > 0) {
+                        tourneeStatus = 'valide' // Minimum atteint (3 participants) mais pas encore le maximum
+                      }
+                      // Sinon, on garde le statut initial (en attente/en cours)
                     }
-                  } else if (participation.isTourneeBloquee && participation.iris_selections) {
-                    // Si bloquée mais pas encore passée, vérifier si au moins un IRIS est validé
-                    const atLeastOneIrisValide = participation.iris_selections.some(iris => (iris.participant_count || 0) >= 3)
-                    if (atLeastOneIrisValide && participation.iris_selections.length > 0) {
-                      tourneeStatus = 'bouclee' // Au moins un IRIS est validé
+                    return { ...participation, calculatedStatus: tourneeStatus }
+                  })
+
+                  // Filtrer selon le filtre sélectionné
+                  const filteredParticipations = participationsWithStatus.filter((p) => {
+                    if (statusFilter === 'actives') {
+                      return p.calculatedStatus === 'pending' || p.calculatedStatus === 'confirmed' || p.calculatedStatus === 'valide' || p.calculatedStatus === 'bouclee'
+                    } else if (statusFilter === 'annulees') {
+                      return p.calculatedStatus === 'cancelled'
+                    } else {
+                      return true // 'toutes' : afficher toutes
                     }
-                    // Sinon, on garde le statut initial (en attente/en cours)
+                  })
+
+                  if (filteredParticipations.length === 0) {
+                    return (
+                      <div style={{
+                        background: 'linear-gradient(135deg, #1F2E4E 0%, #131214 100%)',
+                        borderRadius: '16px',
+                        padding: 'var(--spacing-xl)',
+                        textAlign: 'center',
+                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
+                          {statusFilter === 'actives' 
+                            ? 'Aucune tournée active pour le moment.' 
+                            : statusFilter === 'annulees'
+                            ? 'Aucune tournée annulée.'
+                            : 'Aucune participation.'}
+                        </p>
+                      </div>
+                    )
                   }
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                      {filteredParticipations.map((participation) => {
+                        const isExpanded = expandedCards.has(participation.id)
+                        
+                        // Utiliser le statut déjà calculé
+                        const tourneeStatus = participation.calculatedStatus || participation.status
+                        
+                        // Nombre total de participants uniques sur la tournée (tous secteurs confondus)
+                        const totalParticipants = participation.tourneeParticipantsCount ?? 0
                   
                   return (
                     <div
@@ -576,28 +1284,28 @@ function DashboardContent() {
                         position: 'relative'
                       }}
                     >
-                      {/* Ruban de statut de la tournée si bloquée */}
-                      {participation.isTourneeBloquee && (
-                        <div style={{
-                          position: 'absolute',
-                          top: 0,
-                          right: 0,
-                          background: tourneeStatus === 'bouclee' ? '#4CAF50' : tourneeStatus === 'cancelled' ? '#F44336' : '#ff9800',
-                          color: 'white',
-                          padding: '6px 16px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
-                          borderBottomLeftRadius: '12px',
-                          borderTopRightRadius: '12px',
-                          zIndex: 1
-                        }}>
-                          {tourneeStatus === 'bouclee' ? 'Validée' : tourneeStatus === 'cancelled' ? 'Annulée' : 'En cours'}
-                        </div>
-                      )}
                       {/* En-tête compact */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--spacing-md)' }}>
                         <div style={{ flex: 1, minWidth: '200px' }}>
+                          {/* Badge nombre de participants au-dessus du titre */}
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '4px 10px',
+                            borderRadius: '999px',
+                            background: 'rgba(76, 175, 80, 0.12)',
+                            border: '1px solid rgba(76, 175, 80, 0.6)',
+                            marginBottom: '15px'
+                          }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" strokeWidth="2">
+                              <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"/>
+                              <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <span style={{ color: '#4CAF50', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              {totalParticipants} participant{totalParticipants > 1 ? 's' : ''}
+                            </span>
+                          </div>
                           <h2 style={{
                             fontSize: '20px',
                             fontWeight: 700,
@@ -610,7 +1318,7 @@ function DashboardContent() {
                           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px' }}>
                             {participation.tournee_date_debut} - {participation.tournee_date_fin}
                           </p>
-                          <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap', alignItems: 'center' }}>
                             <div>
                               <span style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}>Logements: </span>
                               <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
@@ -661,7 +1369,161 @@ function DashboardContent() {
                           }}>
                             {statusLabels[tourneeStatus]?.label || tourneeStatus}
                           </div>
+                          {/* Boutons de partage tournée */}
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {/* WhatsApp */}
+                            <button
+                              onClick={() => {
+                                const tourneeUrl = typeof window !== 'undefined'
+                                  ? `${window.location.origin}/tournees/${encodeURIComponent(participation.ville_name.toLowerCase())}/${participation.tournee_index}`
+                                  : ''
+
+                                const MIN_PARTICIPANTS = 3
+                                const MAX_PARTICIPANTS = 5
+
+                                const limiteInscription = participation.tourneeLimiteDate || undefined
+
+                                let message = `Bonjour,\n\nDécouvrez cette tournée de distribution mutualisée à ${participation.ville_name} : ${tourneeUrl}`
+
+                                if (totalParticipants < MIN_PARTICIPANTS && limiteInscription) {
+                                  message = `Bonjour,\n\nJe participe à une tournée de distribution mutualisée à ${participation.ville_name} avec France Distribution.\n` +
+                                    `Il manque encore des participants pour confirmer la tournée. Les inscriptions sont ouvertes jusqu'au ${limiteInscription}.\n` +
+                                    `Tu peux rejoindre la tournée ici : ${tourneeUrl}`
+                                } else if (totalParticipants >= MIN_PARTICIPANTS && totalParticipants < MAX_PARTICIPANTS) {
+                                  message = `Bonjour,\n\nLa tournée mutualisée à ${participation.ville_name} est confirmée et démarre le ${participation.tournee_date_debut}.\n` +
+                                    `Il reste encore quelques places, tu peux nous rejoindre ici : ${tourneeUrl}`
+                                }
+
+                                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
+                                window.open(whatsappUrl, '_blank')
+                              }}
+                              style={{
+                                width: '40px',
+                                height: '40px',
+                                background: '#25D366',
+                                border: 'none',
+                                color: 'white',
+                                borderRadius: '50%',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.2s ease',
+                                padding: 0
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#20BA5A'
+                                e.currentTarget.style.transform = 'scale(1.05)'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#25D366'
+                                e.currentTarget.style.transform = 'scale(1)'
+                              }}
+                              title="Partager la tournée sur WhatsApp"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                              </svg>
+                            </button>
+                            {/* Copie lien tournée */}
+                            <button
+                              onClick={async (e) => {
+                                const tourneeUrl = typeof window !== 'undefined'
+                                  ? `${window.location.origin}/tournees/${encodeURIComponent(participation.ville_name.toLowerCase())}/${participation.tournee_index}`
+                                  : ''
+                                
+                                const button = e.currentTarget as HTMLButtonElement
+                                const originalBackground = button.style.background
+                                
+                                try {
+                                  await navigator.clipboard.writeText(tourneeUrl)
+                                  button.style.background = '#4CAF50'
+                                  // Toast de confirmation
+                                  setToast({ 
+                                    message: 'Lien de la tournée copié dans le presse-papiers.', 
+                                    type: 'success' 
+                                  })
+                                  setTimeout(() => {
+                                    button.style.background = originalBackground || '#242940'
+                                    setToast(null)
+                                  }, 2000)
+                                } catch (err) {
+                                  console.error('Erreur lors de la copie du lien de tournée:', err)
+                                  setToast({ 
+                                    message: 'Impossible de copier le lien. Veuillez réessayer.', 
+                                    type: 'error' 
+                                  })
+                                  setTimeout(() => setToast(null), 3000)
+                                }
+                              }}
+                              style={{
+                                width: '40px',
+                                height: '40px',
+                                background: '#242940',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                color: 'white',
+                                borderRadius: '50%',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.2s ease',
+                                padding: 0
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#2f3654'
+                                e.currentTarget.style.transform = 'scale(1.05)'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#242940'
+                                e.currentTarget.style.transform = 'scale(1)'
+                              }}
+                              title="Copier le lien de la tournée"
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                              </svg>
+                            </button>
+                          </div>
                           <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+                            {participation.status !== 'cancelled' && (
+                              <button
+                                onClick={() => handleDownloadDevis(participation)}
+                                style={{
+                                  padding: '8px 16px',
+                                  background: 'transparent',
+                                  border: '1px solid rgba(255, 255, 255, 0.18)',
+                                  borderRadius: '8px',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '14px',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                                  transition: 'all 0.2s ease',
+                                  whiteSpace: 'nowrap',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '8px'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.borderColor = 'var(--orange-primary)'
+                                  e.currentTarget.style.transform = 'translateY(-1px)'
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.18)'
+                                  e.currentTarget.style.transform = 'translateY(0)'
+                                }}
+                                title="Télécharger le devis"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                  <polyline points="7 10 12 15 17 10"></polyline>
+                                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Devis
+                              </button>
+                            )}
                             {(participation.status === 'pending' || participation.status === 'confirmed') && (
                               <button
                                 onClick={() => openCancelModal(participation.id, participation.ville_name)}
@@ -838,17 +1700,21 @@ function DashboardContent() {
                                             {iris.logements} logements
                                           </span>
                                         )}
-                                        {showStatus && (
-                                          <span style={{ 
-                                            display: 'block', 
-                                            marginTop: '4px', 
-                                            fontSize: '12px',
-                                            color: isValide ? '#4CAF50' : '#F44336',
-                                            fontWeight: 600
-                                          }}>
-                                            {participantCount} participant{participantCount > 1 ? 's' : ''}
-                                          </span>
-                                        )}
+                                        <span style={{ 
+                                          display: 'block', 
+                                          marginTop: '4px', 
+                                          fontSize: '12px',
+                                          color: showStatus 
+                                            ? (isValide ? '#4CAF50' : '#F44336')
+                                            : participantCount >= 3 
+                                              ? '#4CAF50' 
+                                              : participantCount > 0 
+                                                ? '#ff9800' 
+                                                : 'var(--text-tertiary)',
+                                          fontWeight: 600
+                                        }}>
+                                          {participantCount} participant{participantCount > 1 ? 's' : ''}
+                                        </span>
                                       </div>
                                     )
                                   })}
@@ -877,7 +1743,10 @@ function DashboardContent() {
                     </div>
                   )
                 })}
-              </div>
+                    </div>
+                  )
+                })()}
+              </>
             )}
           </div>
         </div>

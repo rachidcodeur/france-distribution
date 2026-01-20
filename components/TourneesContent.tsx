@@ -86,7 +86,6 @@ const regions = [
   { id: 'centre-val-de-loire', name: 'Centre-Val de Loire' },
   { id: 'bourgogne-franche-comte', name: 'Bourgogne-Franche-Comté' },
   { id: 'grand-est', name: 'Grand Est' },
-  { id: 'corse', name: 'Corse' },
 ]
 
 // Mapping des codes INSEE des départements
@@ -350,7 +349,7 @@ export default function TourneesContent() {
   const availableDepartements = selectedRegion ? departementsByRegion[selectedRegion] || [] : []
 
   return (
-    <section className="tournees-section" style={{ marginTop: '88px', padding: 'var(--spacing-4xl) 0', background: 'var(--gradient-dark)' }}>
+    <section className="tournees-section" style={{ marginTop: '88px', paddingTop: '60px', paddingBottom: '60px', background: 'var(--gradient-dark)' }}>
       <div className="container">
         <div className="section-header">
           <h1 className="section-title">Sélectionnez votre département</h1>
@@ -406,7 +405,7 @@ export default function TourneesContent() {
 
         {!isSearching && (
           <div className="tournees-info-section">
-            <div className="how-to-search">
+            <div className="how-to-search" style={{ marginTop: '0px' }}>
               <h2 className="how-to-search-title">Comment rechercher une tournée ?</h2>
               <div className="steps-list">
                 <div className="step-item">
@@ -455,7 +454,7 @@ export default function TourneesContent() {
                 </div>
                 <h3 className="info-card-title">Couverture nationale</h3>
                 <p className="info-card-description">
-                  Plus de {villes.length} villes disponibles dans toute la France. Trouvez la tournée qui correspond à votre zone de distribution.
+                  Plus de 2500 villes disponibles dans toute la France. Trouvez la tournée qui correspond à votre zone de distribution.
                 </p>
               </div>
 
@@ -467,7 +466,7 @@ export default function TourneesContent() {
                 </div>
                 <h3 className="info-card-title">Économies jusqu'à -50%</h3>
                 <p className="info-card-description">
-                  Réduisez vos coûts de distribution en mutualisant avec d'autres entreprises. Plus de participants = moins de coûts pour tous.
+                  Réduisez vos coûts de distribution en mutualisant avec d'autres entreprises. Partagez les frais fixes et bénéficiez de tarifs préférentiels.
                 </p>
               </div>
 

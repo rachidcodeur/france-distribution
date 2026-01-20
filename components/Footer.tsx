@@ -32,6 +32,7 @@ export default function Footer() {
               <li><a href="#tarifs">Tarifs</a></li>
               <li><a href="#services">Services</a></li>
               <li><a href="#about">À propos</a></li>
+              <li><Link href="/mentions-legales">Mentions légales</Link></li>
             </ul>
           </div>
           <div className="footer-section">
@@ -57,9 +58,8 @@ export default function Footer() {
         <div className="footer-bottom">
           <p>&copy; 2025 France Distribution. Tous droits réservés.</p>
           <div style={{ display: 'flex', gap: '24px', marginTop: '16px', justifyContent: 'center' }}>
-            <a href="#mentions" style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}>Mentions légales</a>
-            <a href="#cgv" style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}>CGV</a>
-            <a href="#confidentialite" style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}>Politique de confidentialité</a>
+            <Link href="/mentions-legales" style={{ color: 'var(--text-tertiary)', fontSize: '14px', textDecoration: 'none' }}>Mentions légales</Link>
+            <Link href="/politique-confidentialite" style={{ color: 'var(--text-tertiary)', fontSize: '14px', textDecoration: 'none' }}>Politique de confidentialité</Link>
           </div>
         </div>
       </div>

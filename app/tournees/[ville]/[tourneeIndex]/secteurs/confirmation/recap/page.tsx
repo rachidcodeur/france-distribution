@@ -83,6 +83,18 @@ export default function RecapPage() {
     { quantity: 200000, price: 2280.00 }
   ]
 
+  // Fonction pour calculer le coût de création du flyer (mise en page)
+  const calculateFlyerCreationCost = useMemo(() => {
+    if (!storedData || storedData.hasFlyer) return 0 // Pas de coût de création si l'utilisateur a déjà un flyer
+    
+    const format = storedData.selectedFlyerFormat
+    
+    if (!format) return 0
+    
+    // Coût de création : 90€ HT pour A6, 130€ HT pour A5
+    return format === 'A6' ? 90 : 130
+  }, [storedData])
+
   // Fonction pour calculer le coût d'impression (uniquement pour les créations de flyer)
   const calculatePrintingCost = useMemo(() => {
     if (!storedData || storedData.hasFlyer) return 0 // Pas de coût d'impression si l'utilisateur a déjà un flyer
@@ -138,6 +150,17 @@ export default function RecapPage() {
     let uploadedFlyerUrl: string | null = null
 
     try {
+      const generateDevisNumero = () => {
+        const now = new Date()
+        const yyyy = now.getFullYear()
+        const mm = String(now.getMonth() + 1).padStart(2, '0')
+        const dd = String(now.getDate()).padStart(2, '0')
+        const rand = Math.random().toString(36).slice(2, 8).toUpperCase()
+        return `FD-${yyyy}${mm}${dd}-${rand}`
+      }
+
+      const devisNumero = generateDevisNumero()
+
       // Si l'utilisateur a un flyer, il faut récupérer le fichier depuis sessionStorage
       // Note: Les fichiers ne peuvent pas être stockés dans sessionStorage, donc on sauvegarde sans le fichier
       // Le fichier devra être uploadé séparément ou via un autre mécanisme
@@ -152,7 +175,8 @@ export default function RecapPage() {
         total_logements: Math.round(storedData.totalLogements),
         cout_distribution: storedData.coutDistribution,
         status: 'pending',
-        tournee_link: `/tournees/${encodeURIComponent(storedData.villeName.toLowerCase())}/${storedData.tourneeIndex}/secteurs`
+        tournee_link: `/tournees/${encodeURIComponent(storedData.villeName.toLowerCase())}/${storedData.tourneeIndex}/secteurs`,
+        devis_numero: devisNumero,
       }
 
       // Ajouter les champs du flyer
@@ -205,10 +229,14 @@ export default function RecapPage() {
                               participationError.code === '42703' ||
                               errorMessage.includes('flyer_') ||
                               errorMessage.includes('has_flyer') ||
-                              errorMessage.includes('needs_flyer_creation')
+                              errorMessage.includes('needs_flyer_creation') ||
+                              errorMessage.includes('devis_numero') ||
+                              errorMessage.toLowerCase().includes('devis')
         
         if (isColumnError) {
           console.warn('⚠️ Colonnes flyer manquantes, création sans ces informations')
+          const isDevisColumnIssue = errorMessage.includes('devis_numero') || errorMessage.toLowerCase().includes('devis')
+
           // Créer la participation avec uniquement les colonnes de base
           const basicParticipationData = {
             user_id: user.id,
@@ -218,7 +246,8 @@ export default function RecapPage() {
             tournee_index: storedData.tourneeIndex,
             total_logements: Math.round(storedData.totalLogements),
             cout_distribution: storedData.coutDistribution,
-            status: 'pending'
+            status: 'pending',
+            ...(isDevisColumnIssue ? {} : { devis_numero: devisNumero })
           }
           
           console.log('📝 Tentative avec données de base uniquement:', basicParticipationData)
@@ -310,10 +339,10 @@ export default function RecapPage() {
 
   if (!storedData) {
     return (
-      <section className="tournees-section" style={{ marginTop: '88px', padding: 'var(--spacing-4xl) 0', background: 'var(--gradient-dark)' }}>
+      <section style={{ marginTop: '88px', padding: 'var(--spacing-4xl) 0', background: 'linear-gradient(135deg, #0B1220 0%, #0E1A2F 50%, #111C34 100%)', minHeight: 'calc(100vh - 88px)' }}>
         <div className="container">
           <div style={{ textAlign: 'center', padding: 'var(--spacing-4xl) 0' }}>
-            <p style={{ color: 'var(--text-secondary)' }}>Chargement...</p>
+            <p style={{ color: '#CBD5E1' }}>Chargement...</p>
           </div>
         </div>
       </section>
@@ -323,78 +352,126 @@ export default function RecapPage() {
   const flyerFormat = storedData.selectedFlyerFormat // Format uniquement pour les créations
 
   return (
-    <section className="tournees-section" style={{ marginTop: '88px', padding: 'var(--spacing-4xl) 0', background: 'var(--gradient-dark)' }}>
+    <section style={{ marginTop: '88px', padding: '60px 20px', background: 'linear-gradient(135deg, #0B1220 0%, #0E1A2F 50%, #111C34 100%)', minHeight: 'calc(100vh - 88px)' }}>
         <div className="container">
-          <div className="recap-page-container" style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <div style={{ maxWidth: '980px', margin: '0 auto' }}>
             <Link 
               href={`/tournees/${encodeURIComponent(storedData.villeName.toLowerCase())}/${storedData.tourneeIndex}/secteurs/confirmation`}
-              className="back-link"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: '#CBD5E1',
+                textDecoration: 'none',
+                fontSize: '15px',
+                marginBottom: '32px',
+                fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+              }}
             >
-              <span className="back-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-              </span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}>
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
               Retour
             </Link>
 
-            <div className="section-header">
-              <h1 className="section-title">Récapitulatif final</h1>
-              <p className="section-subtitle">
-                Tournée du {storedData.tourneeDateDebut} au {storedData.tourneeDateFin} - {storedData.villeName}
-              </p>
-            </div>
-
-            <div className="recap-details-card" style={{
-              background: 'var(--bg-accent)',
-              borderRadius: '16px',
-              padding: 'var(--spacing-xl)',
-              marginBottom: 'var(--spacing-xl)',
-              border: '2px solid #52607f'
+            <div style={{
+              background: '#0F1B2D',
+              borderRadius: '20px',
+              padding: '40px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.45)',
+              border: '1px solid rgba(255,255,255,0.06)'
             }}>
+              <div style={{ marginBottom: '32px' }}>
+                <h1 style={{
+                  fontSize: '26px',
+                  fontWeight: 600,
+                  color: '#F8FAFC',
+                  marginBottom: '12px',
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
+                }}>
+                  Récapitulatif final
+                </h1>
+                <p style={{
+                  fontSize: '15px',
+                  color: '#CBD5E1',
+                  lineHeight: 1.6,
+                  fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                }}>
+                  Tournée du {storedData.tourneeDateDebut} au {storedData.tourneeDateFin} - {storedData.villeName}
+                </p>
+              </div>
+
+            <div style={{
+              background: '#0C1626',
+              borderRadius: '14px',
+              padding: '24px',
+              marginBottom: '32px',
+              border: '1px solid rgba(255,255,255,0.08)'
+            }}>
+              <h2 style={{
+                color: '#F8FAFC',
+                marginBottom: '20px',
+                fontSize: '20px',
+                fontWeight: 500,
+                paddingBottom: '12px',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
+              }}>
+                Résumé de votre sélection
+              </h2>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: 'var(--spacing-lg)',
-                marginBottom: 'var(--spacing-lg)'
+                gap: '24px',
+                marginBottom: '24px'
               }}>
                 <div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px' }}>
+                  <div style={{ color: '#94A3B8', fontSize: '15px', marginBottom: '8px', fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
                     Secteurs IRIS sélectionnés
                   </div>
-                  <div style={{ color: 'var(--text-primary)', fontSize: '24px', fontWeight: 700 }}>
+                  <div style={{ color: '#F8FAFC', fontSize: '24px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                     {storedData.selectedIris.length}
                   </div>
                 </div>
                 <div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px' }}>
+                  <div style={{ color: '#94A3B8', fontSize: '15px', marginBottom: '8px', fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
                     Total logements
                   </div>
-                  <div style={{ color: 'var(--orange-primary)', fontSize: '24px', fontWeight: 700 }}>
+                  <div style={{ color: '#F97316', fontSize: '24px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                     {Math.round(storedData.totalLogements).toLocaleString('fr-FR')}
                   </div>
                 </div>
               </div>
 
               <div style={{
-                paddingTop: 'var(--spacing-lg)',
-                borderTop: '1px solid #52607f',
-                marginBottom: 'var(--spacing-lg)'
+                paddingTop: '20px',
+                borderTop: '1px solid rgba(255,255,255,0.06)',
+                marginBottom: '20px'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
-                  <span style={{ color: 'var(--text-primary)', fontSize: '18px', fontWeight: 600 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (calculateFlyerCreationCost > 0 || calculatePrintingCost > 0) && flyerFormat ? '16px' : '0' }}>
+                  <span style={{ color: '#94A3B8', fontSize: '15px', fontWeight: 500, fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
                     Coût de distribution
                   </span>
-                  <span style={{ color: 'var(--orange-primary)', fontSize: '24px', fontWeight: 700 }}>
+                  <span style={{ color: '#CBD5E1', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                     {storedData.coutDistribution.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
                   </span>
                 </div>
+                {calculateFlyerCreationCost > 0 && flyerFormat && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: calculatePrintingCost > 0 ? '16px' : '0' }}>
+                    <span style={{ color: '#94A3B8', fontSize: '15px', fontWeight: 500, fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
+                      Coût de création (Format {flyerFormat})
+                    </span>
+                    <span style={{ color: '#CBD5E1', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
+                      {calculateFlyerCreationCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ HT
+                    </span>
+                  </div>
+                )}
                 {calculatePrintingCost > 0 && flyerFormat && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-primary)', fontSize: '18px', fontWeight: 600 }}>
+                    <span style={{ color: '#94A3B8', fontSize: '15px', fontWeight: 500, fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
                       Coût d'impression (Format {flyerFormat})
                     </span>
-                    <span style={{ color: 'var(--orange-primary)', fontSize: '24px', fontWeight: 700 }}>
+                    <span style={{ color: '#CBD5E1', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                       {calculatePrintingCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ HT
                     </span>
                   </div>
@@ -402,15 +479,16 @@ export default function RecapPage() {
               </div>
 
               <div style={{
-                paddingTop: 'var(--spacing-lg)',
-                borderTop: '2px solid var(--orange-primary)'
+                paddingTop: '20px',
+                borderTop: '1px solid rgba(249,115,22,0.3)',
+                marginTop: '16px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--text-primary)', fontSize: '27px', fontWeight: 700 }}>
+                  <span style={{ color: '#F8FAFC', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                     Total
                   </span>
-                  <span style={{ color: 'var(--orange-primary)', fontSize: '33px', fontWeight: 700 }}>
-                    {(storedData.coutDistribution + calculatePrintingCost).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
+                  <span style={{ color: '#F97316', fontSize: '26px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
+                    {(storedData.coutDistribution + calculateFlyerCreationCost + calculatePrintingCost).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
                   </span>
                 </div>
               </div>
@@ -418,22 +496,26 @@ export default function RecapPage() {
 
             <div style={{
               display: 'flex',
-              gap: 'var(--spacing-md)',
-              justifyContent: 'flex-end'
+              gap: '12px',
+              justifyContent: 'flex-end',
+              marginTop: '32px',
+              paddingTop: '32px',
+              borderTop: '1px solid rgba(255,255,255,0.06)'
             }}>
               <Link
                 href={`/tournees/${encodeURIComponent(storedData.villeName.toLowerCase())}/${storedData.tourneeIndex}/secteurs/confirmation`}
                 style={{
-                  padding: '12px var(--spacing-lg)',
-                  borderRadius: '8px',
-                  border: '1px solid #52607f',
-                  background: 'var(--bg-accent)',
-                  color: 'var(--text-primary)',
+                  padding: '12px 26px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'transparent',
+                  color: '#CBD5E1',
                   cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: 600,
+                  fontSize: '15px',
+                  fontWeight: 500,
                   textDecoration: 'none',
-                  display: 'inline-block'
+                  display: 'inline-block',
+                  fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                 }}
               >
                 Retour
@@ -442,20 +524,21 @@ export default function RecapPage() {
                 onClick={handleFinalConfirm}
                 disabled={saving}
                 style={{
-                  padding: '12px var(--spacing-lg)',
-                  borderRadius: '8px',
+                  padding: '12px 26px',
+                  borderRadius: '12px',
                   border: 'none',
-                  background: 'linear-gradient(135deg, #fb6d25 0%, #e85a1a 100%)',
-                  color: 'var(--text-primary)',
+                  background: '#F97316',
+                  color: '#FFFFFF',
                   cursor: saving ? 'not-allowed' : 'pointer',
-                  fontSize: '16px',
-                  fontWeight: 600,
+                  fontSize: '15px',
+                  fontWeight: 500,
                   opacity: saving ? 0.5 : 1,
-                  boxShadow: '0 4px 12px rgba(251, 109, 37, 0.35)'
+                  fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                 }}
               >
                 Valider
               </button>
+            </div>
             </div>
           </div>
         </div>

@@ -26,6 +26,12 @@ interface IrisLogement {
   logements_iris: number
 }
 
+type AddressSuggestion = {
+  label: string
+  lat: number
+  lng: number
+}
+
 export default function SecteursPage({ 
   params 
 }: { 
@@ -53,6 +59,84 @@ export default function SecteursPage({
   const [buttonAnimation, setButtonAnimation] = useState<'idle' | 'opening' | 'closing'>('idle')
   const [badgeAnimation, setBadgeAnimation] = useState(false)
   const [hasOpenedPanelOnce, setHasOpenedPanelOnce] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [showCopyToast, setShowCopyToast] = useState(false)
+
+  // Recherche d'adresse (BAN - api-adresse.data.gouv.fr)
+  const [addressQuery, setAddressQuery] = useState('')
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([])
+  const [addressOpen, setAddressOpen] = useState(false)
+  const [addressLoading, setAddressLoading] = useState(false)
+  const [addressError, setAddressError] = useState<string | null>(null)
+  const [searchLocation, setSearchLocation] = useState<{ lat: number; lng: number; label?: string } | null>(null)
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const [isSearchHovered, setIsSearchHovered] = useState(false)
+
+  // Détecter si on est sur mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Charger des suggestions d'adresse avec un debounce
+  useEffect(() => {
+    const q = addressQuery.trim()
+
+    // Reset
+    setAddressError(null)
+    if (q.length < 3) {
+      setAddressSuggestions([])
+      return
+    }
+
+    const controller = new AbortController()
+    const timeout = window.setTimeout(async () => {
+      try {
+        setAddressLoading(true)
+        const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=6&autocomplete=1`
+        const res = await fetch(url, { signal: controller.signal })
+        if (!res.ok) throw new Error('Erreur lors de la recherche d’adresse')
+
+        const json = await res.json()
+        const features: any[] = Array.isArray(json?.features) ? json.features : []
+        const suggestions: AddressSuggestion[] = features
+          .map((f) => {
+            const label = String(f?.properties?.label || '').trim()
+            const coords = f?.geometry?.coordinates
+            const lng = Array.isArray(coords) ? Number(coords[0]) : NaN
+            const lat = Array.isArray(coords) ? Number(coords[1]) : NaN
+            if (!label || Number.isNaN(lat) || Number.isNaN(lng)) return null
+            return { label, lat, lng }
+          })
+          .filter(Boolean) as AddressSuggestion[]
+
+        setAddressSuggestions(suggestions)
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return
+        console.error('Erreur recherche adresse:', e)
+        setAddressError('Impossible de récupérer des suggestions pour le moment.')
+        setAddressSuggestions([])
+      } finally {
+        setAddressLoading(false)
+      }
+    }, 300)
+
+    return () => {
+      window.clearTimeout(timeout)
+      controller.abort()
+    }
+  }, [addressQuery])
+
+  const selectAddressSuggestion = useCallback((s: AddressSuggestion) => {
+    setAddressQuery(s.label)
+    setSearchLocation({ lat: s.lat, lng: s.lng, label: s.label })
+    setAddressSuggestions([])
+    setAddressOpen(false)
+  }, [])
 
   // Fonction pour normaliser les noms (minuscules, suppression des accents, etc.)
   const normalizeName = useCallback((name: string): string => {
@@ -2066,20 +2150,52 @@ export default function SecteursPage({
                   </svg>
                 </button>
 
-                {/* Icône Email */}
+                {/* Icône Copier */}
                 <button
-                  onClick={() => {
+                  onClick={async (e) => {
                     const tourneeUrl = typeof window !== 'undefined' 
                       ? `${window.location.origin}/tournees/${encodeURIComponent(ville.name.toLowerCase())}/${tourneeIndex}`
                       : ''
-                    const subject = encodeURIComponent('Tournée de distribution mutualisée')
-                    const body = encodeURIComponent(`Découvrez cette tournée de distribution : ${tourneeUrl}`)
-                    window.location.href = `mailto:?subject=${subject}&body=${body}`
+                    
+                    const button = e.currentTarget as HTMLButtonElement
+                    const originalBackground = button.style.background
+                    
+                    try {
+                      await navigator.clipboard.writeText(tourneeUrl)
+                      // Afficher le toast
+                      setShowCopyToast(true)
+                      button.style.background = '#4CAF50'
+                      setTimeout(() => {
+                        button.style.background = originalBackground || '#6366F1'
+                        setShowCopyToast(false)
+                      }, 3000)
+                    } catch (err) {
+                      // Fallback pour les navigateurs qui ne supportent pas l'API Clipboard
+                      const textArea = document.createElement('textarea')
+                      textArea.value = tourneeUrl
+                      textArea.style.position = 'fixed'
+                      textArea.style.left = '-999999px'
+                      document.body.appendChild(textArea)
+                      textArea.focus()
+                      textArea.select()
+                      try {
+                        document.execCommand('copy')
+                        setShowCopyToast(true)
+                        button.style.background = '#4CAF50'
+                        setTimeout(() => {
+                          button.style.background = originalBackground || '#6366F1'
+                          setShowCopyToast(false)
+                        }, 3000)
+                      } catch (err) {
+                        console.error('Erreur lors de la copie:', err)
+                      }
+                      document.body.removeChild(textArea)
+                    }
                   }}
                   style={{
                     width: '50px',
                     height: '50px',
-                    background: '#EA4335',
+                    background: '#6366F1',
                     border: 'none',
                     color: 'white',
                     borderRadius: '50%',
@@ -2091,60 +2207,55 @@ export default function SecteursPage({
                     padding: 0
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#D33B2C'
-                    e.currentTarget.style.transform = 'scale(1.1)'
+                    if (e.currentTarget.style.background !== '#4CAF50') {
+                      e.currentTarget.style.background = '#4F46E5'
+                      e.currentTarget.style.transform = 'scale(1.1)'
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#EA4335'
-                    e.currentTarget.style.transform = 'scale(1)'
+                    if (e.currentTarget.style.background !== '#4CAF50') {
+                      e.currentTarget.style.background = '#6366F1'
+                      e.currentTarget.style.transform = 'scale(1)'
+                    }
                   }}
-                  title="Partager par Email"
+                  title="Copier le lien"
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
-                  </svg>
-                </button>
-
-                {/* Icône Facebook */}
-                <button
-                  onClick={() => {
-                    const tourneeUrl = typeof window !== 'undefined' 
-                      ? `${window.location.origin}/tournees/${encodeURIComponent(ville.name.toLowerCase())}/${tourneeIndex}`
-                      : ''
-                    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(tourneeUrl)}`
-                    window.open(facebookUrl, '_blank')
-                  }}
-                  style={{
-                    width: '50px',
-                    height: '50px',
-                    background: '#1877F2',
-                    border: 'none',
-                    color: 'white',
-                    borderRadius: '50%',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
-                    padding: 0
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#166FE5'
-                    e.currentTarget.style.transform = 'scale(1.1)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#1877F2'
-                    e.currentTarget.style.transform = 'scale(1)'
-                  }}
-                  title="Partager sur Facebook"
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                   </svg>
                 </button>
               </div>
             </div>
           </div>
+          
+          {/* Toast de confirmation de copie */}
+          {showCopyToast && (
+            <div style={{
+              position: 'fixed',
+              top: '20px',
+              right: '20px',
+              background: '#4CAF50',
+              color: 'white',
+              padding: '12px 20px',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              zIndex: 10000,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+              fontSize: '14px',
+              fontWeight: 500,
+              animation: 'slideInDown 0.3s ease-out'
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+              Lien copié dans le presse-papier !
+            </div>
+          )}
+          
           {isDateLimiteDepassee && (
             <div style={{
               background: '#f44336',
@@ -2194,14 +2305,85 @@ export default function SecteursPage({
             }}>
               {/* COLONNE GAUCHE - Carte interactive */}
               <div className="iris-left-column" style={{ flex: '1 1 70%', minWidth: 0 }}>
-                {/* Section avec progression et bouton */}
-                <div className="iris-progress-section" style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '30px',
-                  gap: 'var(--spacing-md)'
+                {/* Texte d'avertissement */}
+                <div style={{
+                  marginTop: '20px',
+                  marginBottom: '20px',
+                  padding: '12px 16px',
+                  background: 'rgba(249,115,22,0.08)',
+                  border: '1px solid rgba(249,115,22,0.35)',
+                  borderRadius: '8px'
                 }}>
+                  <p style={{
+                    fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                    fontSize: '14px',
+                    lineHeight: 1.5,
+                    color: '#FED7AA',
+                    margin: 0
+                  }}>
+                    <strong style={{ fontWeight: 600 }}>ATTENTION :</strong> La distribution est validée uniquement à partir de <strong style={{ fontWeight: 600, color: '#F97316' }}>3 flyers minimum</strong> sur l'ensemble des secteurs IRIS choisis, pour une quantité minimale de <strong style={{ fontWeight: 600, color: '#F97316' }}>5 000 logements</strong>.
+                    <br />
+                    Dans le cas contraire, la mission sera annulée automatiquement.
+                  </p>
+                </div>
+                
+                {/* Section Comment procéder - Mobile uniquement (dupliquée depuis le haut) */}
+                <div 
+                  className="iris-comment-proceder-mobile"
+                  style={{
+                    padding: 'var(--spacing-md)',
+                    background: '#222e4c',
+                    border: '1px solid #323b51',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                    marginBottom: '16px',
+                    display: 'none' // Masqué par défaut, affiché sur mobile via CSS
+                  }}
+                >
+                  <h3 style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    margin: '0 0 var(--spacing-sm) 0',
+                    fontSize: '20px',
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--orange-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    Comment procéder
+                  </h3>
+                  <p style={{
+                    fontSize: '15px',
+                    lineHeight: '1.6',
+                    margin: 0,
+                    color: 'var(--text-primary)'
+                  }}>
+                    Pour valider votre participation, vous devez sélectionner au minimum <strong>5 000 logements</strong> sur la carte. Cliquez sur les secteurs IRIS en bleu pour les ajouter à votre sélection. Le nombre total de logements sélectionnés s'affiche en temps réel dans la barre de progression ci-dessous.
+                  </p>
+                </div>
+                
+                {/* Section barre de progression au-dessus de la carte - Mobile uniquement */}
+                <div 
+                  className="progress-section-mobile"
+                  style={{
+                    background: 'rgba(26, 30, 46, 0.95)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '12px',
+                    padding: '16px 20px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+                    marginBottom: '16px',
+                    display: 'none', // Masqué par défaut, affiché sur mobile via CSS
+                    alignItems: 'center',
+                    gap: '16px'
+                  }}
+                >
                   {/* Partie gauche - Progression */}
                   <div style={{
                     flex: 1,
@@ -2217,12 +2399,12 @@ export default function SecteursPage({
                     }}>
                       <span style={{
                         fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                        fontSize: '14px',
+                        fontSize: '12px',
                         fontWeight: 600,
                         color: 'var(--text-primary)',
                         whiteSpace: 'nowrap'
                       }}>
-                        Minimum : 5 000 logements
+                        Min: 5 000
                       </span>
                       <span style={{
                         fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
@@ -2258,98 +2440,245 @@ export default function SecteursPage({
                     </div>
                   </div>
 
-                  {/* Partie droite - Bouton */}
+                  {/* Partie droite - Bouton Continuer / Voir la sélection */}
                   <button
-                    onClick={togglePanelButton}
+                    onClick={() => {
+                      if (isDateLimiteDepassee) return
+                      if (totalLogements >= 5000) {
+                        handleSubmitClick()
+                      } else {
+                        togglePanelButton()
+                      }
+                    }}
+                    disabled={isDateLimiteDepassee}
                     style={{
-                      padding: '10px 12px',
+                      padding: '4px 10px',
                       borderRadius: '12px',
-                      background: isPanelOpen 
-                        ? 'linear-gradient(135deg, #fb6d25 0%, #e85a1a 100%)'
+                      background: isDateLimiteDepassee
+                        ? 'rgba(251, 109, 37, 0.5)'
                         : 'linear-gradient(135deg, #fb6d25 0%, #e85a1a 100%)',
                       border: 'none',
                       color: 'white',
                       fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                      fontSize: '16px',
+                      fontSize: '13px',
                       fontWeight: 600,
-                      cursor: 'pointer',
-                      boxShadow: isPanelOpen 
-                        ? '0 8px 24px rgba(251, 109, 37, 0.5)'
+                      cursor: isDateLimiteDepassee ? 'not-allowed' : 'pointer',
+                      boxShadow: isDateLimiteDepassee
+                        ? 'none'
                         : '0 4px 12px rgba(251, 109, 37, 0.4)',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
-                      transform: buttonAnimation === 'opening' 
-                        ? 'scale(1.05)'
-                        : buttonAnimation === 'closing'
-                        ? 'scale(0.95)'
-                        : 'scale(1)',
                       flexShrink: 0,
                       whiteSpace: 'nowrap',
-                      width: 'auto'
+                      opacity: isDateLimiteDepassee ? 0.6 : 1
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.05)'
-                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(251, 109, 37, 0.6)'
+                      if (!isDateLimiteDepassee) {
+                        e.currentTarget.style.transform = 'scale(1.05)'
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(251, 109, 37, 0.6)'
+                      }
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1)'
-                      e.currentTarget.style.boxShadow = isPanelOpen 
-                        ? '0 8px 24px rgba(251, 109, 37, 0.5)'
-                        : '0 4px 12px rgba(251, 109, 37, 0.4)'
+                      if (!isDateLimiteDepassee) {
+                        e.currentTarget.style.transform = 'scale(1)'
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(251, 109, 37, 0.4)'
+                      }
                     }}
                   >
-                    {isPanelOpen ? (
-                      <>
-                        <svg 
-                          width="18" 
-                          height="18" 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2.5"
-                        >
-                          <path d="M18 6L6 18M6 6L18 18" strokeLinecap="round"/>
-                        </svg>
-                        Fermer la sélection
-                      </>
-                    ) : (
-                      <>
-                        <svg 
-                          width="18" 
-                          height="18" 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2.5"
-                        >
-                          <path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        Continuer
-                        {selectedIris.length > 0 && (
-                          <span
-                            style={{
-                              background: 'white',
-                              color: 'black',
-                              borderRadius: '12px',
-                              padding: '2px 8px',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              marginLeft: '4px',
-                              transition: 'all 0.3s ease',
-                              animation: badgeAnimation ? 'badgeBounce 0.6s ease' : 'none',
-                              display: 'inline-block'
-                            }}
-                          >
-                            {selectedIris.length}
-                          </span>
-                        )}
-                      </>
-                    )}
+                    {isDateLimiteDepassee 
+                      ? 'Inscriptions fermées' 
+                      : totalLogements >= 5000 
+                        ? 'Continuer' 
+                        : 'Voir la sélection'}
                   </button>
                 </div>
+                
+              {/* Recherche d'adresse (au-dessus de la carte) */}
+              <div
+                className="address-search-wrapper"
+                style={{
+                  margin: '12px auto 16px',
+                  width: '100%',
+                  maxWidth: '720px',
+                  position: 'relative',
+                  zIndex: 1001,
+                }}
+              >
+                <div
+                  style={{
+                    height: '64px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0 20px',
+                    background: isSearchHovered || isSearchFocused
+                      ? 'linear-gradient(180deg, #242a3a 0%, #1b2030 100%)'
+                      : 'linear-gradient(180deg, #1f2433 0%, #181c28 100%)',
+                    borderRadius: '16px',
+                    border: isSearchFocused
+                      ? '1px solid rgba(251,109,37,0.35)'
+                      : '1px solid rgba(255,255,255,0.06)',
+                    boxShadow: isSearchFocused
+                      ? '0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03), 0 0 0 3px rgba(251,109,37,0.08)'
+                      : '0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)',
+                    backdropFilter: 'blur(6px)',
+                  }}
+                  onMouseEnter={() => setIsSearchHovered(true)}
+                  onMouseLeave={() => setIsSearchHovered(false)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%' }}>
+                    <div
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '12px',
+                        background: 'rgba(255,255,255,0.06)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                      </svg>
+                    </div>
+
+                    <input
+                      value={addressQuery}
+                      onChange={(e) => {
+                        setAddressQuery(e.target.value)
+                        setAddressOpen(true)
+                      }}
+                      onFocus={() => {
+                        setAddressOpen(true)
+                        setIsSearchFocused(true)
+                      }}
+                      onBlur={() => {
+                        // laisser le temps au clic sur une suggestion
+                        setIsSearchFocused(false)
+                        window.setTimeout(() => setAddressOpen(false), 150)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          if (addressSuggestions.length > 0) {
+                            selectAddressSuggestion(addressSuggestions[0])
+                          }
+                        }
+                        if (e.key === 'Escape') {
+                          setAddressOpen(false)
+                        }
+                      }}
+                      placeholder="Rechercher une adresse…"
+                      style={{
+                        flex: 1,
+                        width: '100%',
+                        padding: 0,
+                        border: 'none',
+                        background: 'transparent',
+                        color: '#f1f3f9',
+                        fontSize: '15px',
+                        fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, sans-serif',
+                        outline: 'none',
+                      }}
+                      className="address-search-input"
+                    />
+
+                    {addressQuery.trim().length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddressQuery('')
+                          setAddressSuggestions([])
+                          setAddressError(null)
+                          setSearchLocation(null)
+                        }}
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '10px',
+                          border: '1px solid rgba(255,255,255,0.14)',
+                          background: 'transparent',
+                          color: 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0.9,
+                        }}
+                        title="Effacer"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+
+                    {(addressLoading || addressError || (addressOpen && addressSuggestions.length > 0)) && (
+                    <div style={{ marginTop: '12px' }}>
+                      {addressLoading && (
+                        <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '13px' }}>
+                          Recherche…
+                        </div>
+                      )}
+
+                      {addressError && (
+                        <div style={{ color: '#ffb4a9', fontSize: '13px' }}>
+                          {addressError}
+                        </div>
+                      )}
+
+                      {addressOpen && addressSuggestions.length > 0 && (
+                        <div
+                          className="address-suggestions-panel"
+                          style={{
+                            marginTop: addressLoading || addressError ? '10px' : 0,
+                            background: '#141926',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: '14px',
+                            overflow: 'hidden',
+                            position: 'relative',
+                            zIndex: 2000,
+                          }}
+                        >
+                          {addressSuggestions.map((s) => (
+                            <button
+                              key={`${s.label}-${s.lat}-${s.lng}`}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => selectAddressSuggestion(s)}
+                              style={{
+                                width: '100%',
+                                textAlign: 'left',
+                                padding: '10px 12px',
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#f1f3f9',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                lineHeight: 1.3,
+                                fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, sans-serif',
+                                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                              }}
+                            >
+                              {s.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {searchLocation && (
+                    <div style={{ marginTop: '10px', color: 'rgba(255,255,255,0.8)', fontSize: '12px' }}>
+                      Repère placé sur la carte.
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="iris-map-container" style={{ 
                 background: 'var(--bg-accent)', 
                 borderRadius: '16px', 
@@ -2367,22 +2696,6 @@ export default function SecteursPage({
                   loading,
                   error
                 })}
-                {!loading && !iris && !error && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    background: 'rgba(255, 0, 0, 0.9)',
-                    color: 'white',
-                    padding: '20px',
-                    borderRadius: '8px',
-                    zIndex: 10000,
-                    textAlign: 'center'
-                  }}>
-                    ⚠️ Aucun IRIS chargé pour cette commune
-                  </div>
-                )}
                 {commune ? (
                   <MapComponent 
                     commune={commune} 
@@ -2393,6 +2706,7 @@ export default function SecteursPage({
                     irisParticipants={irisParticipants}
                     onIrisBubbleClick={handleIrisBubbleClick}
                     communeLogements={ville ? parseFloat(ville.logements.replace(/\s/g, '').replace(',', '.')) : undefined}
+                    searchLocation={searchLocation}
                   />
                 ) : (
                   <div style={{
@@ -2424,20 +2738,157 @@ export default function SecteursPage({
                       IRIS chargés: {Array.isArray(iris) ? iris.length : (iris as any)?.features?.length || 0}
                     </div>
                   )}
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '8px',
-                    right: '8px',
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '11px',
-                    color: 'var(--text-secondary)',
-                    fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
-                    zIndex: 1000
-                  }}>
+                  <div 
+                    className="source-logements-text"
+                    style={{
+                      position: 'absolute',
+                      bottom: '8px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      background: 'rgba(0, 0, 0, 0.6)',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      color: 'var(--text-secondary)',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                      zIndex: 1000,
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
                     Source des logements : INSEE 2021
                   </div>
+                  
+                  {/* Overlay avec barre de progression et bouton Continuer - Desktop uniquement */}
+                  {!isMobile && (
+                  <div 
+                    className="progress-overlay-desktop"
+                    style={{
+                      position: 'absolute',
+                      top: '20px',
+                      right: '20px',
+                      width: irisParticipants.size > 0 ? '50%' : '40%',
+                      background: 'rgba(26, 30, 46, 0.95)',
+                      backdropFilter: 'blur(10px)',
+                      borderRadius: '12px',
+                      padding: '16px 20px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                      zIndex: 999,
+                      alignItems: 'center',
+                      gap: '16px'
+                    }}
+                  >
+                    {/* Partie gauche - Progression */}
+                    <div style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      minWidth: 0
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}>
+                        <span style={{
+                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          color: 'var(--text-primary)',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          Min: 5 000
+                        </span>
+                        <span style={{
+                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                          fontSize: '16px',
+                          fontWeight: 700,
+                          color: totalLogements >= 5000 ? '#4CAF50' : 'var(--orange-primary)',
+                          marginLeft: 'auto'
+                        }}>
+                          {Math.round(totalLogements).toLocaleString('fr-FR')}
+                        </span>
+                      </div>
+                      {/* Barre de progression */}
+                      <div style={{
+                        width: '100%',
+                        height: '8px',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                        position: 'relative'
+                      }}>
+                        <div style={{
+                          width: `${Math.min((totalLogements / 5000) * 100, 100)}%`,
+                          height: '100%',
+                          background: totalLogements >= 5000 
+                            ? 'linear-gradient(90deg, #4CAF50 0%, #66BB6A 100%)'
+                            : 'linear-gradient(90deg, #fb6d25 0%, #ff8c42 100%)',
+                          borderRadius: '4px',
+                          transition: 'width 0.3s ease, background 0.3s ease',
+                          boxShadow: totalLogements >= 5000 
+                            ? '0 2px 8px rgba(76, 175, 80, 0.3)'
+                            : '0 2px 8px rgba(251, 109, 37, 0.3)'
+                        }} />
+                      </div>
+                    </div>
+
+                    {/* Partie droite - Bouton Continuer / Voir la sélection */}
+                    <button
+                      onClick={() => {
+                        if (isDateLimiteDepassee) return
+                        if (totalLogements >= 5000) {
+                          handleSubmitClick()
+                        } else {
+                          togglePanelButton()
+                        }
+                      }}
+                      disabled={isDateLimiteDepassee}
+                      style={{
+                        padding: '12px 20px',
+                        borderRadius: '12px',
+                        background: isDateLimiteDepassee
+                          ? 'rgba(251, 109, 37, 0.5)'
+                          : 'linear-gradient(135deg, #fb6d25 0%, #e85a1a 100%)',
+                        border: 'none',
+                        color: 'white',
+                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                        fontSize: '16px',
+                        fontWeight: 600,
+                        cursor: isDateLimiteDepassee ? 'not-allowed' : 'pointer',
+                        boxShadow: isDateLimiteDepassee
+                          ? 'none'
+                          : '0 4px 12px rgba(251, 109, 37, 0.4)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                        opacity: isDateLimiteDepassee ? 0.6 : 1
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isDateLimiteDepassee) {
+                          e.currentTarget.style.transform = 'scale(1.05)'
+                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(251, 109, 37, 0.6)'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isDateLimiteDepassee) {
+                          e.currentTarget.style.transform = 'scale(1)'
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(251, 109, 37, 0.4)'
+                        }
+                      }}
+                    >
+                      {isDateLimiteDepassee 
+                        ? 'Inscriptions fermées' 
+                        : totalLogements >= 5000 
+                          ? 'Continuer' 
+                          : 'Voir la sélection'}
+                    </button>
+                  </div>
+                  )}
                 </div>
 
                 {/* SECTION TRACÉ GPS */}
@@ -2565,7 +3016,7 @@ export default function SecteursPage({
                   overflowY: 'auto'
                 }}>
                   <div style={{
-                    background: 'var(--bg-accent)',
+                    background: '#252e4a',
                     borderRadius: '16px',
                     padding: 'var(--spacing-lg)',
                     border: '2px solid #323b51',
@@ -2605,33 +3056,41 @@ export default function SecteursPage({
                         const count = irisCounts.get(irisCode) || 0
                         if (count === 0) return null
                         
-                        // Trouver le nom de l'IRIS depuis les données chargées
+                        // Détecter si c'est une commune non irisée
+                        const isCommuneNonIrisee = String(irisCode).startsWith('COMMUNE_NON_IRISEE_')
                         let irisName = irisCode
-                        if (iris && iris.features) {
-                          const irisFeature = iris.features.find((f: any) => {
-                            const code = f.properties?.code_iris || f.properties?.CODE_IRIS || f.properties?.iris_code
-                            return code && normalizeName(String(code)) === normalizeName(irisCode)
-                          })
-                          if (irisFeature) {
-                            irisName = irisFeature.properties?.nom_iris || irisFeature.properties?.NOM_IRIS || irisFeature.properties?.iris_name || irisCode
-                          }
-                        }
                         
-                        // Si pas trouvé, chercher dans irisLogementsMap
-                        if (irisName === irisCode) {
-                          const foundKey = Array.from(irisLogementsMap.keys()).find(key => 
-                            normalizeName(key) === normalizeName(irisCode) || 
-                            key.includes(irisCode) || 
-                            irisCode.includes(key)
-                          )
-                          if (foundKey) irisName = foundKey
+                        if (isCommuneNonIrisee) {
+                          // Extraire le nom de la commune en enlevant le préfixe
+                          irisName = String(irisCode).replace('COMMUNE_NON_IRISEE_', '')
+                        } else {
+                          // Trouver le nom de l'IRIS depuis les données chargées
+                          if (iris && iris.features) {
+                            const irisFeature = iris.features.find((f: any) => {
+                              const code = f.properties?.code_iris || f.properties?.CODE_IRIS || f.properties?.iris_code
+                              return code && normalizeName(String(code)) === normalizeName(irisCode)
+                            })
+                            if (irisFeature) {
+                              irisName = irisFeature.properties?.nom_iris || irisFeature.properties?.NOM_IRIS || irisFeature.properties?.iris_name || irisCode
+                            }
+                          }
+                          
+                          // Si pas trouvé, chercher dans irisLogementsMap
+                          if (irisName === irisCode) {
+                            const foundKey = Array.from(irisLogementsMap.keys()).find(key => 
+                              normalizeName(key) === normalizeName(irisCode) || 
+                              key.includes(irisCode) || 
+                              irisCode.includes(key)
+                            )
+                            if (foundKey) irisName = foundKey
+                          }
                         }
                         
                         return (
                           <div
                             key={irisCode}
                             style={{
-                              background: 'rgba(0, 0, 0, 0.2)',
+                              background: '#242940',
                               borderRadius: '12px',
                               padding: 'var(--spacing-md)',
                               border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -2639,11 +3098,11 @@ export default function SecteursPage({
                               transition: 'all 0.2s ease'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.3)'
+                              e.currentTarget.style.background = '#2a3248'
                               e.currentTarget.style.borderColor = 'var(--orange-primary)'
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.2)'
+                              e.currentTarget.style.background = '#242940'
                               e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'
                             }}
                             onClick={() => setSelectedIrisForDetails(irisCode)}
@@ -3034,13 +3493,30 @@ export default function SecteursPage({
                             display: 'flex',
                             gap: 'var(--spacing-sm)'
             }}>
-              <button
-                onClick={() => setIsPanelOpen(false)}
-                className="btn btn-secondary"
-                style={{ flex: 1 }}
-              >
-                Ajouter
-              </button>
+              {(() => {
+                // Vérifier si tous les IRIS disponibles sont sélectionnés
+                const allIrisSelected = iris && iris.features && Array.isArray(iris.features) && iris.features.length > 0
+                  ? iris.features.every((feature: any) => {
+                      const irisCode = feature.properties?.code || feature.properties?.code_iris || feature.properties?.CODE_IRIS
+                      return selectedIris.some(selected => String(selected.code).trim() === String(irisCode).trim())
+                    })
+                  : false
+                
+                // Masquer le bouton si tous les IRIS sont sélectionnés
+                if (allIrisSelected) {
+                  return null
+                }
+                
+                return (
+                  <button
+                    onClick={() => setIsPanelOpen(false)}
+                    className="btn btn-secondary"
+                    style={{ flex: 1 }}
+                  >
+                    Ajouter
+                  </button>
+                )
+              })()}
               <button 
                               onClick={handleSubmitClick}
                 className="btn btn-primary"
@@ -3087,7 +3563,7 @@ export default function SecteursPage({
         onClick={() => setSelectedIrisForDetails(null)}
         >
           <div style={{
-            background: 'var(--bg-accent)',
+            background: '#222b44',
             borderRadius: '16px',
             padding: 'var(--spacing-xl)',
             maxWidth: '600px',
@@ -3274,6 +3750,29 @@ export default function SecteursPage({
           }
           75% {
             transform: scale(1.2);
+          }
+        }
+
+        .address-search-input::placeholder {
+          color: rgba(255, 255, 255, 0.45);
+        }
+
+        @media (max-width: 768px) {
+          .address-search-wrapper {
+            z-index: 5;
+          }
+
+          .address-suggestions-panel {
+            width: 100%;
+            max-width: none;
+            margin-left: 0;
+            margin-right: 0;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 8px);
+            transform: none;
+            z-index: 6;
           }
         }
       `}</style>

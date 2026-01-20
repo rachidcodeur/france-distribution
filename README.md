@@ -23,7 +23,7 @@ npm install
 npm run dev
 ```
 
-3. Ouvrir [http://localhost:3000](http://localhost:3000) dans votre navigateur
+3. Ouvrir [https://france-distribution-flyers.fr](https://france-distribution-flyers.fr) dans votre navigateur
 
 ## 📁 Structure du Projet
 

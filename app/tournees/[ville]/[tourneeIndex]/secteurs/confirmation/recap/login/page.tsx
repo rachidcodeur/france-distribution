@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, isSupabaseConfigured } from '../../../../../../../../lib/supabase'
 import type { User } from '@supabase/supabase-js'
+import Toast from '@/components/Toast'
 
 interface SelectedIris {
   code: string
@@ -49,8 +50,52 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
   const hasSavedRef = useRef(false) // Ref pour éviter le double comptage
   const savingRef = useRef(false) // Ref pour éviter les appels concurrents
+
+  const getAuthErrorMessage = (err: any, fallback = 'Une erreur est survenue. Veuillez réessayer.') => {
+    const message = String(err?.message || err?.error_description || '').toLowerCase()
+
+    if (message.includes('invalid login credentials')) {
+      return 'Email ou mot de passe incorrect.'
+    }
+    if (message.includes('email not confirmed')) {
+      return 'Veuillez confirmer votre adresse email avant de vous connecter.'
+    }
+    if (message.includes('user already registered') || message.includes('email already')) {
+      return 'Un compte existe déjà avec cette adresse email.'
+    }
+    if (message.includes('password should be at least')) {
+      return 'Le mot de passe doit contenir au moins 6 caractères.'
+    }
+    if (message.includes('invalid email')) {
+      return 'Adresse email invalide.'
+    }
+    if (message.includes('rate limit') || message.includes('too many requests')) {
+      return 'Trop de tentatives. Veuillez réessayer plus tard.'
+    }
+    if (message.includes('signup disabled')) {
+      return 'Les inscriptions sont désactivées pour le moment.'
+    }
+
+    return fallback
+  }
+
+  const isValidEmail = (value: string) => {
+    const trimmed = value.trim()
+    if (!trimmed) return false
+    if (trimmed.length > 254) return false
+    const basic = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
+    if (!basic) return false
+    if (trimmed.includes('..')) return false
+    return true
+  }
+
+  const showErrorToast = (message: string) => {
+    setToast({ message, type: 'error' })
+    setTimeout(() => setToast(null), 4000)
+  }
 
   // Charger les données depuis localStorage au montage
   useEffect(() => {
@@ -129,6 +174,17 @@ export default function LoginPage() {
     let uploadedFlyerUrl: string | null = null
 
     try {
+      const generateDevisNumero = () => {
+        const now = new Date()
+        const yyyy = now.getFullYear()
+        const mm = String(now.getMonth() + 1).padStart(2, '0')
+        const dd = String(now.getDate()).padStart(2, '0')
+        const rand = Math.random().toString(36).slice(2, 8).toUpperCase()
+        return `FD-${yyyy}${mm}${dd}-${rand}`
+      }
+
+      const devisNumero = generateDevisNumero()
+
       // Créer la participation avec les informations du flyer
       const participationData: any = {
         user_id: user.id,
@@ -139,7 +195,8 @@ export default function LoginPage() {
         total_logements: Math.round(storedData.totalLogements),
         cout_distribution: storedData.coutDistribution,
         status: 'pending',
-        tournee_link: `/tournees/${encodeURIComponent(storedData.villeName.toLowerCase())}/${storedData.tourneeIndex}/secteurs`
+        tournee_link: `/tournees/${encodeURIComponent(storedData.villeName.toLowerCase())}/${storedData.tourneeIndex}/secteurs`,
+        devis_numero: devisNumero,
       }
 
       // Ajouter les champs du flyer
@@ -258,8 +315,16 @@ export default function LoginPage() {
             participationError.message.includes('flyer_url') || 
             participationError.message.includes('needs_flyer_creation') ||
             participationError.message.includes('flyer_format') ||
+            participationError.message.includes('devis_numero') ||
+            participationError.message.toLowerCase().includes('devis') ||
             participationError.code === '42703') {
-          console.warn('Colonnes flyer manquantes, création sans ces informations')
+          const errorMessage = participationError.message || ''
+          const isDevisColumnIssue = errorMessage.includes('devis_numero') || errorMessage.toLowerCase().includes('devis')
+
+          console.warn('Colonnes optionnelles manquantes, création sans ces informations', {
+            isDevisColumnIssue
+          })
+
           const { data: participationRetry, error: retryError } = await supabase
             .from('france_distri_participations')
             .insert({
@@ -270,7 +335,8 @@ export default function LoginPage() {
               tournee_index: storedData.tourneeIndex,
               total_logements: Math.round(storedData.totalLogements),
               cout_distribution: storedData.coutDistribution,
-              status: 'pending'
+              status: 'pending',
+              ...(isDevisColumnIssue ? {} : { devis_numero: devisNumero }),
             } as any)
             .select()
             .single()
@@ -332,7 +398,7 @@ export default function LoginPage() {
         errorMessage = 'Les colonnes de la base de données ne sont pas à jour. Veuillez exécuter le script de migration SQL (supabase-migration-complete.sql) dans Supabase.'
       }
       
-      alert(`${errorMessage}\n\nSi le problème persiste, vérifiez la console du navigateur pour plus de détails.`)
+      showErrorToast(`${errorMessage}\n\nSi le problème persiste, vérifiez la console du navigateur pour plus de détails.`)
     } finally {
       setSaving(false)
       savingRef.current = false
@@ -345,7 +411,7 @@ export default function LoginPage() {
     setLoading(true)
 
     if (!isSupabaseConfigured()) {
-      setError('Supabase n\'est pas configuré. Veuillez créer un fichier .env.local avec vos clés Supabase.')
+      showErrorToast('Supabase n\'est pas configuré. Veuillez créer un fichier .env.local avec vos clés Supabase.')
       setLoading(false)
       return
     }
@@ -353,20 +419,32 @@ export default function LoginPage() {
     try {
       if (isSignUp) {
         // Inscription
+        if (!isValidEmail(email)) {
+          showErrorToast('Adresse email invalide.')
+          setLoading(false)
+          return
+        }
+
+        if (!isValidEmail(confirmEmail)) {
+          showErrorToast('Adresse email de confirmation invalide.')
+          setLoading(false)
+          return
+        }
+
         if (email !== confirmEmail) {
-          setError('Les adresses email ne correspondent pas')
+          showErrorToast('Les adresses email ne correspondent pas')
           setLoading(false)
           return
         }
 
         if (password !== confirmPassword) {
-          setError('Les mots de passe ne correspondent pas')
+          showErrorToast('Les mots de passe ne correspondent pas')
           setLoading(false)
           return
         }
 
         if (password.length < 6) {
-          setError('Le mot de passe doit contenir au moins 6 caractères')
+          showErrorToast('Le mot de passe doit contenir au moins 6 caractères')
           setLoading(false)
           return
         }
@@ -449,10 +527,16 @@ export default function LoginPage() {
             }
           }
         } else {
-          setError('Une erreur est survenue lors de l\'inscription')
+          showErrorToast('Une erreur est survenue lors de l\'inscription')
         }
       } else {
         // Connexion
+        if (!isValidEmail(email)) {
+          showErrorToast('Adresse email invalide.')
+          setLoading(false)
+          return
+        }
+
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password
@@ -469,7 +553,7 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       console.error('Erreur d\'authentification:', err)
-      setError(err.message || 'Une erreur est survenue lors de l\'authentification')
+      showErrorToast(getAuthErrorMessage(err, 'Une erreur est survenue lors de l\'authentification'))
     } finally {
       setLoading(false)
     }
@@ -521,21 +605,6 @@ export default function LoginPage() {
               border: '2px solid #52607f'
             }}>
               <form onSubmit={handleSubmit}>
-                {error && (
-                  <div style={{
-                    padding: 'var(--spacing-md)',
-                    borderRadius: '8px',
-                    background: 'rgba(244, 67, 54, 0.1)',
-                    border: '1px solid var(--error)',
-                    color: 'var(--error)',
-                    marginBottom: 'var(--spacing-md)',
-                    fontSize: '14px',
-                    whiteSpace: 'pre-line'
-                  }}>
-                    {error}
-                  </div>
-                )}
-                
                 {message && (
                   <div style={{
                     padding: 'var(--spacing-md)',
@@ -805,7 +874,15 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
     </section>
   )
 }
+
 

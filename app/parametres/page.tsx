@@ -24,6 +24,7 @@ export default function ParametresPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingPassword, setSavingPassword] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [phoneError, setPhoneError] = useState(false)
   
@@ -35,6 +36,12 @@ export default function ParametresPage() {
     adresse_rue: '',
     adresse_code_postal: '',
     adresse_ville: ''
+  })
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   })
 
   useEffect(() => {
@@ -163,6 +170,7 @@ export default function ParametresPage() {
 
       const profileData = {
         user_id: user.id,
+        email: user.email || null,
         nom: formData.nom?.trim() || null,
         prenom: formData.prenom?.trim() || null,
         entreprise: formData.entreprise?.trim() || null,
@@ -213,6 +221,65 @@ export default function ParametresPage() {
 
   const handleChange = (field: keyof UserProfile, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handlePasswordChange = (field: 'currentPassword' | 'newPassword' | 'confirmPassword', value: string) => {
+    setPasswordData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+
+    // Validation
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setToast({ message: 'Veuillez remplir tous les champs.', type: 'error' })
+      return
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setToast({ message: 'Le nouveau mot de passe doit contenir au moins 6 caractères.', type: 'error' })
+      return
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setToast({ message: 'Les nouveaux mots de passe ne correspondent pas.', type: 'error' })
+      return
+    }
+
+    if (passwordData.currentPassword === passwordData.newPassword) {
+      setToast({ message: 'Le nouveau mot de passe doit être différent de l\'ancien.', type: 'error' })
+      return
+    }
+
+    setSavingPassword(true)
+    try {
+      // Mettre à jour le mot de passe avec Supabase
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      })
+
+      if (updateError) {
+        console.error('Erreur lors de la mise à jour du mot de passe:', updateError)
+        throw updateError
+      }
+
+      setToast({ message: 'Votre mot de passe a été modifié avec succès !', type: 'success' })
+      // Réinitialiser les champs
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      })
+      setTimeout(() => setToast(null), 3000)
+    } catch (error: any) {
+      console.error('Erreur lors de la modification du mot de passe:', error)
+      const errorMessage = error?.message || 'Erreur lors de la modification du mot de passe. Veuillez réessayer.'
+      setToast({ message: errorMessage, type: 'error' })
+      setTimeout(() => setToast(null), 5000)
+    } finally {
+      setSavingPassword(false)
+    }
   }
 
   if (loading) {
@@ -520,6 +587,128 @@ export default function ParametresPage() {
                   }}
                 >
                   {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                </button>
+              </div>
+            </form>
+
+            {/* Section modification du mot de passe */}
+            <form onSubmit={handlePasswordSubmit} style={{ marginTop: 'var(--spacing-xl)' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #1F2E4E 0%, #131214 100%)',
+                borderRadius: '16px',
+                padding: 'var(--spacing-xl)',
+                border: '2px solid #353550',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+              }}>
+                <h2 style={{
+                  fontSize: '24px',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  marginBottom: 'var(--spacing-lg)',
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
+                }}>
+                  Modifier votre mot de passe
+                </h2>
+
+                <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                  <label style={{
+                    display: 'block',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    marginBottom: '8px',
+                    fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                  }}>
+                    Mot de passe actuel
+                  </label>
+                  <input
+                    type="password"
+                    value={passwordData.currentPassword}
+                    onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid #52607f',
+                      background: '#222b44',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                    }}
+                    className="input-placeholder-white"
+                  />
+                </div>
+
+                <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                  <label style={{
+                    display: 'block',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    marginBottom: '8px',
+                    fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                  }}>
+                    Nouveau mot de passe
+                  </label>
+                  <input
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                    placeholder="Minimum 6 caractères"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid #52607f',
+                      background: '#222b44',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                    }}
+                    className="input-placeholder-white"
+                  />
+                </div>
+
+                <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+                  <label style={{
+                    display: 'block',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    marginBottom: '8px',
+                    fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                  }}>
+                    Confirmer le nouveau mot de passe
+                  </label>
+                  <input
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid #52607f',
+                      background: '#222b44',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                    }}
+                    className="input-placeholder-white"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingPassword}
+                  className="btn btn-primary"
+                  style={{
+                    width: '100%',
+                    opacity: savingPassword ? 0.6 : 1,
+                    cursor: savingPassword ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {savingPassword ? 'Modification en cours...' : 'Modifier le mot de passe'}
                 </button>
               </div>
             </form>

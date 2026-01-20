@@ -31,6 +31,7 @@ interface Participation {
   flyer_title: string | null
   flyer_entreprise: string | null
   flyer_email: string | null
+  flyer_telephone?: string | null
   flyer_address_rue: string | null
   flyer_address_code_postal: string | null
   flyer_address_ville: string | null
@@ -40,6 +41,7 @@ interface Participation {
   updated_at: string
   iris_selections?: IrisSelection[]
   user_email?: string
+  user_phone?: string
   tournee_link?: string | null
 }
 
@@ -221,6 +223,7 @@ export default function AdminPage() {
         flyer_title: p.flyer_title,
         flyer_entreprise: p.flyer_entreprise,
         flyer_email: p.flyer_email,
+        flyer_telephone: p.flyer_telephone,
         flyer_address_rue: p.flyer_address_rue,
         flyer_address_code_postal: p.flyer_address_code_postal,
         flyer_address_ville: p.flyer_address_ville,
@@ -251,6 +254,27 @@ export default function AdminPage() {
           userEmailMap.set(p.user_id, 'Email non disponible')
         }
       })
+
+      // Récupérer les téléphones depuis les profils utilisateurs
+      const userPhoneMap = new Map<string, string>()
+      try {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('france_distri_user_profiles')
+          .select('user_id, telephone')
+          .in('user_id', typedParticipationsData.map(p => p.user_id))
+
+        if (profilesError) {
+          console.error('Erreur lors de la récupération des téléphones:', profilesError)
+        } else if (profilesData) {
+          profilesData.forEach((profile: any) => {
+            if (profile?.user_id && profile?.telephone) {
+              userPhoneMap.set(String(profile.user_id), String(profile.telephone))
+            }
+          })
+        }
+      } catch (err) {
+        console.error('Erreur lors de la récupération des téléphones:', err)
+      }
 
       // Récupérer les sélections d'IRIS
       const participationIds = typedParticipationsData.map(p => p.id)
@@ -314,7 +338,8 @@ export default function AdminPage() {
         tourneesMap.get(key)!.push({
           ...participation,
           iris_selections: typedIrisData.filter(iris => iris.participation_id === participation.id),
-          user_email: userEmailMap.get(participation.user_id) || 'Email non disponible'
+          user_email: userEmailMap.get(participation.user_id) || 'Email non disponible',
+          user_phone: userPhoneMap.get(participation.user_id) || participation.flyer_telephone || 'Téléphone non disponible'
         })
       })
 
@@ -1284,6 +1309,25 @@ export default function AdminPage() {
                                                           {participation.user_email}
                                                         </a>
                                                       </div>
+                                                      <div>
+                                                        <strong style={{ color: 'var(--text-tertiary)' }}>Téléphone: </strong>
+                                                        {participation.user_phone && participation.user_phone !== 'Téléphone non disponible' ? (
+                                                          <a
+                                                            href={`tel:${participation.user_phone}`}
+                                                            style={{ color: 'var(--orange-primary)', textDecoration: 'none' }}
+                                                            onMouseEnter={(e) => {
+                                                              e.currentTarget.style.textDecoration = 'underline'
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                              e.currentTarget.style.textDecoration = 'none'
+                                                            }}
+                                                          >
+                                                            {participation.user_phone}
+                                                          </a>
+                                                        ) : (
+                                                          <span>Téléphone non disponible</span>
+                                                        )}
+                                                      </div>
                                                       {participation.flyer_entreprise && (
                                                         <div>
                                                           <strong style={{ color: 'var(--text-tertiary)' }}>Entreprise: </strong>
@@ -1531,6 +1575,30 @@ export default function AdminPage() {
                     >
                       {selectedParticipation.user_email}
                     </a>
+                  </div>
+                  <div>
+                    <strong style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: '4px' }}>Téléphone</strong>
+                    {selectedParticipation.user_phone && selectedParticipation.user_phone !== 'Téléphone non disponible' ? (
+                      <a
+                        href={`tel:${selectedParticipation.user_phone}`}
+                        style={{
+                          color: 'var(--orange-primary)',
+                          textDecoration: 'none',
+                          fontSize: '16px',
+                          fontWeight: 500
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.textDecoration = 'underline'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.textDecoration = 'none'
+                        }}
+                      >
+                        {selectedParticipation.user_phone}
+                      </a>
+                    ) : (
+                      <span style={{ fontSize: '16px' }}>Téléphone non disponible</span>
+                    )}
                   </div>
                   {selectedParticipation.flyer_entreprise && (
                     <div>
