@@ -31,6 +31,8 @@ interface Participation {
   has_flyer: boolean
   flyer_title: string | null
   flyer_entreprise: string | null
+  flyer_email?: string | null
+  flyer_telephone?: string | null
   flyer_address_rue: string | null
   flyer_address_code_postal: string | null
   flyer_address_ville: string | null
@@ -561,6 +563,8 @@ function DashboardContent() {
         needs_flyer_creation: p.needs_flyer_creation !== undefined ? Boolean(p.needs_flyer_creation) : false,
         flyer_title: p.flyer_title ? String(p.flyer_title) : null,
         flyer_entreprise: p.flyer_entreprise ? String(p.flyer_entreprise) : null,
+        flyer_email: p.flyer_email ? String(p.flyer_email) : null,
+        flyer_telephone: p.flyer_telephone ? String(p.flyer_telephone) : null,
         flyer_address_rue: p.flyer_address_rue
           ? String(p.flyer_address_rue)
           : p.flyer_address?.rue
