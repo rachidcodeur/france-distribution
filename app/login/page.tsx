@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
@@ -38,7 +38,7 @@ interface StoredSelection {
   selectedFlyerFormat?: 'A5' | 'A6' | null
 }
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [storedData, setStoredData] = useState<StoredSelection | null>(null)
@@ -1104,6 +1104,29 @@ export default function LoginPage() {
         />
       )}
     </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main>
+          <Header />
+          <section className="tournees-section" style={{ marginTop: '88px', padding: 'var(--spacing-4xl) 0', background: 'var(--gradient-dark)' }}>
+            <div className="container">
+              <div style={{ textAlign: 'center', padding: 'var(--spacing-4xl) 0' }}>
+                <p style={{ color: 'var(--text-secondary)' }}>Chargement...</p>
+              </div>
+            </div>
+          </section>
+          <Footer />
+          <GSAPAnimations />
+        </main>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   )
 }
 

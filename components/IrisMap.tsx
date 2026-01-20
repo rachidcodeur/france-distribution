@@ -771,7 +771,7 @@ export default function IrisMap({ commune, iris, selectedIris, onIrisClick, iris
                 
                 // Appliquer le style initial basé sur la sélection
                 const initialStyle = getCommuneStyle(feature)
-                layer.setStyle(initialStyle)
+                ;(layer as L.Path).setStyle(initialStyle)
                 
                 layer.on({
                   click: () => {
@@ -780,7 +780,7 @@ export default function IrisMap({ commune, iris, selectedIris, onIrisClick, iris
                     
                     // Mettre à jour le style après le clic
                     const isSelected = selectedIris.some(code => String(code || '').trim() === communeCode)
-                    layer.setStyle({
+                    ;(layer as L.Path).setStyle({
                       color: isSelected ? '#fb6d25' : '#2563eb',
                       weight: isSelected ? 5 : 4,
                       fillColor: isSelected ? '#fb6d25' : '#3b82f6',

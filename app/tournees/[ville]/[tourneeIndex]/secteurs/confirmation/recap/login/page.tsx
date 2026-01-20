@@ -878,6 +878,7 @@ export default function LoginPage() {
           <Toast
             message={toast.message}
             type={toast.type}
+            isVisible={!!toast}
             onClose={() => setToast(null)}
           />
         )}

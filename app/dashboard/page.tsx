@@ -26,7 +26,7 @@ interface Participation {
   tournee_index: number
   total_logements: number
   cout_distribution: number
-  status: 'pending' | 'confirmed' | 'cancelled' | 'bouclee'
+  status: 'pending' | 'confirmed' | 'cancelled' | 'bouclee' | 'valide'
   devis_numero?: string | null
   has_flyer: boolean
   flyer_title: string | null
@@ -666,7 +666,7 @@ function DashboardContent() {
         tourneeKeys.add(key)
       })
 
-      for (const key of tourneeKeys) {
+      for (const key of Array.from(tourneeKeys)) {
         const [villeName, dateDebut] = key.split('|')
 
         // Récupérer TOUTES les participations pour cette tournée (tous utilisateurs)
@@ -690,7 +690,7 @@ function DashboardContent() {
         tourneeParticipantsCounts.set(key, participantCount)
 
         // Récupérer TOUTES les sélections IRIS pour toutes les participations de cette tournée
-        const allParticipationIds = allTourneeParticipations?.map(p => p.id) || []
+        const allParticipationIds = (allTourneeParticipations || []).map((p: any) => p.id)
         if (allParticipationIds.length > 0) {
           const { data: allIrisForTournee, error: irisTourneeError } = await supabase
             .from('france_distri_iris_selections')
