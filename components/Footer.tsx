@@ -30,26 +30,24 @@ export default function Footer() {
               <li><a href="#accueil">Annuaire</a></li>
               <li><a href="#features">Mutualisation</a></li>
               <li><a href="#tarifs">Tarifs</a></li>
-              <li><a href="#services">Services</a></li>
               <li><a href="#about">À propos</a></li>
               <li><Link href="/mentions-legales">Mentions légales</Link></li>
             </ul>
           </div>
           <div className="footer-section">
-            <h4 className="footer-title">Services</h4>
+            <h4 className="footer-title">Nos avantages</h4>
             <ul className="footer-links">
-              <li><a href="#services">Création de flyers</a></li>
-              <li><a href="#services">Impression</a></li>
-              <li><a href="#services">Création de sites</a></li>
-              <li><a href="#services">Réseaux sociaux</a></li>
-              <li><a href="#avis">Avis Google</a></li>
+              <li>Jusqu'à -50% d'économies</li>
+              <li>Suivi en temps réel</li>
+              <li>Couverture nationale</li>
+              <li>Support réactif</li>
             </ul>
           </div>
           <div className="footer-section">
             <h4 className="footer-title">Contact</h4>
             <ul className="footer-links" style={{ listStyle: 'none' }}>
-              <li style={{ marginBottom: '8px' }}>123 Avenue de la République</li>
-              <li style={{ marginBottom: '8px' }}>75011 Paris, France</li>
+              <li style={{ marginBottom: '8px' }}>5 Rue Fénelon</li>
+              <li style={{ marginBottom: '8px' }}>33000 BORDEAUX</li>
               <li style={{ marginBottom: '8px' }}>09 78 28 84 62</li>
               <li><a href="mailto:contact@france-distribution.fr">contact@france-distribution.fr</a></li>
             </ul>

@@ -151,12 +151,13 @@ export default function AboutSection() {
                 alt="France Distribution"
                 width={800}
                 height={600}
+                quality={100}
                 style={{
                   width: '100%',
                   height: 'auto',
                   objectFit: 'contain'
                 }}
-                sizes="100vw"
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className="about-image"
               />
             ) : (
@@ -164,10 +165,11 @@ export default function AboutSection() {
                 src="/image-about-france-distri.webp"
                 alt="France Distribution"
                 fill
+                quality={100}
                 style={{
                   objectFit: 'cover'
                 }}
-                sizes="50vw"
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className="about-image"
               />
             )}

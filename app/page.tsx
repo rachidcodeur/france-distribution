@@ -1,13 +1,11 @@
 import Header from '@/components/Header'
-import Hero from '@/components/Hero'
+import HeroBanner from '@/components/HeroBanner'
 import PricingComparison from '@/components/PricingComparison'
 import AboutSection from '@/components/AboutSection'
 import Features from '@/components/Features'
 import HowItWorks from '@/components/HowItWorks'
 import Stats from '@/components/Stats'
 import CTA from '@/components/CTA'
-import Services from '@/components/Services'
-import Partenaires from '@/components/Partenaires'
 import FAQ from '@/components/FAQ'
 import Footer from '@/components/Footer'
 import GSAPAnimations from '@/components/GSAPAnimations'
@@ -28,17 +26,19 @@ export default function Home() {
             linear-gradient(120deg, #0f1220 0%, #151a2e 40%, #1a2140 100%)
           `,
           position: 'relative',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          paddingLeft: '15px',
+          paddingRight: '15px'
         }}
       >
         <Header />
-        <Hero />
+        <HeroBanner />
         
         {/* Section des statistiques sous la bannière */}
         <section
           className="hero-stats-section"
           style={{
-            paddingTop: '30px',
+            paddingTop: '0px',
             paddingBottom: 'calc(var(--spacing-2xl) - 80px)',
             paddingLeft: '0',
             paddingRight: '0',
@@ -51,7 +51,7 @@ export default function Home() {
               style={{
                 borderTop: '1px solid var(--border-subtle)',
                 maxWidth: '800px',
-                margin: '0 auto',
+                margin: '7px auto',
                 paddingTop: 'var(--spacing-lg)'
               }}
             >
@@ -103,7 +103,7 @@ export default function Home() {
               <p 
                 style={{ 
                   marginTop: 'var(--spacing-lg)', 
-                  fontSize: '14px', 
+                  fontSize: '11px', 
                   color: 'var(--text-tertiary)', 
                   textAlign: 'center' 
                 }}
@@ -236,8 +236,6 @@ export default function Home() {
               </div>
             </div>
           </section>
-          <Services />
-          <Partenaires />
           <FAQ />
         </div>
         <Footer />

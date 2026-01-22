@@ -46,12 +46,33 @@ function AuthCallbackContent() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Récupérer les paramètres de l'URL
-        const accessToken = searchParams.get('access_token')
-        const refreshToken = searchParams.get('refresh_token')
-        const type = searchParams.get('type')
+        // Récupérer les paramètres de l'URL (query ou hash)
+        const hashParams = typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.hash.replace('#', ''))
+          : new URLSearchParams()
+        const accessToken = searchParams.get('access_token') || hashParams.get('access_token')
+        const refreshToken = searchParams.get('refresh_token') || hashParams.get('refresh_token')
+        const type = searchParams.get('type') || hashParams.get('type')
 
         console.log('🔗 Callback auth - Type:', type)
+
+        // Si c'est une récupération de mot de passe, restaurer la session et rediriger
+        if (type === 'recovery' && accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          })
+
+          if (sessionError) {
+            console.error('❌ Erreur lors de la restauration de session (recovery):', sessionError)
+            router.push('/login?mode=signin')
+            return
+          }
+
+          console.log('✅ Session restaurée pour réinitialisation du mot de passe')
+          router.push('/login?mode=reset')
+          return
+        }
 
         // Si c'est une confirmation d'email, restaurer la session
         if (type === 'signup' && accessToken && refreshToken) {

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import Link from 'next/link'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger'
 
@@ -9,7 +8,7 @@ if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger)
 }
 
-export default function Hero() {
+export default function HeroBanner() {
   const heroRef = useRef<HTMLElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const subtitleRef = useRef<HTMLParagraphElement>(null)
@@ -18,7 +17,6 @@ export default function Hero() {
   useEffect(() => {
     if (typeof window === 'undefined' || !heroRef.current) return
 
-    // S'assurer que les éléments sont visibles par défaut
     if (titleRef.current) gsap.set(titleRef.current, { opacity: 1, y: 0 })
     if (subtitleRef.current) gsap.set(subtitleRef.current, { opacity: 1, y: 0 })
     if (ctaRef.current) {
@@ -28,41 +26,25 @@ export default function Hero() {
     }
 
     const ctx = gsap.context(() => {
-      // Animation d'entrée principale
-      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-
-      // Background parallax retiré pour un fond statique
-
-      // Titre avec split text effect
       if (titleRef.current) {
-        gsap.fromTo(titleRef.current, 
+        gsap.fromTo(
+          titleRef.current,
           { y: 80, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 1.2,
-            ease: 'power4.out'
-          }
+          { y: 0, opacity: 1, duration: 1.2, ease: 'power4.out' }
         )
       }
 
-      // Sous-titre
       if (subtitleRef.current) {
-        gsap.fromTo(subtitleRef.current,
+        gsap.fromTo(
+          subtitleRef.current,
           { y: 40, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 1,
-            ease: 'power3.out',
-            delay: 0.3
-          }
+          { y: 0, opacity: 1, duration: 1, ease: 'power3.out', delay: 0.3 }
         )
       }
 
-      // CTA avec stagger
       if (ctaRef.current && ctaRef.current.children.length > 0) {
-        gsap.fromTo(ctaRef.current.children,
+        gsap.fromTo(
+          ctaRef.current.children,
           { y: 30, opacity: 0 },
           {
             y: 0,
@@ -74,39 +56,40 @@ export default function Hero() {
           }
         )
       }
-
-      // Floating animation retirée pour un fond statique
     }, heroRef)
 
     return () => ctx.revert()
   }, [])
 
   return (
-    <section 
+    <section
       ref={heroRef}
-      className="hero" 
-      id="accueil"
+      className="hero"
+      id="accueil-banniere"
       style={{
         position: 'relative',
-        minHeight: '90vh',
-        height: '478px',
+        minHeight: 'auto',
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
         overflow: 'hidden',
         background: 'transparent',
-        paddingTop: '88px',
-        paddingBottom: '0px',
+        paddingTop: 'calc(88px + 3vh)',
+        paddingBottom: 'var(--spacing-lg)',
         marginBottom: '0px',
         zIndex: 3
       }}
     >
-
-
-      <div className="container" style={{ position: 'relative', zIndex: 2 }}>
-        <div className="hero-content" style={{ textAlign: 'center', maxWidth: '900px', margin: '0 auto' }}>
+      <div
+        className="container"
+        style={{ position: 'relative', zIndex: 2, paddingLeft: '30px', paddingRight: '30px' }}
+      >
+        <div
+          className="hero-content"
+          style={{ textAlign: 'center', maxWidth: '900px', margin: '0 auto' }}
+        >
           <div className="hero-text">
-            <h1 
+            <h1
               ref={titleRef}
               className="hero-title"
               style={{
@@ -122,19 +105,22 @@ export default function Hero() {
               }}
             >
               La distribution mutualisée qui réduit vos coûts jusqu'à{' '}
-              <span className="cinquante" style={{ 
-                color: 'var(--orange-primary)',
-                background: 'var(--gradient-main)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                position: 'relative'
-              }}>
+              <span
+                className="cinquante"
+                style={{
+                  color: 'var(--orange-primary)',
+                  background: 'var(--gradient-main)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  position: 'relative'
+                }}
+              >
                 -50%
               </span>
             </h1>
-            
-            <p 
+
+            <p
               ref={subtitleRef}
               className="hero-subtitle"
               style={{
@@ -145,10 +131,14 @@ export default function Hero() {
                 fontWeight: 400
               }}
             >
-              France Distribution, spécialiste de la distribution d'imprimés, a créé la toute première plateforme en France dédiée aux commerçants et artisans pour mutualiser leurs tournées de boîtes aux lettres. Le principe est simple : vous rejoignez une tournée existante avec d'autres entreprises locales, ce qui permet de partager les frais et d'obtenir un tarif nettement plus avantageux qu'une distribution en solo.
+              France Distribution, spécialiste de la distribution d'imprimés, a créé la toute
+              première plateforme en France dédiée aux commerçants et artisans pour mutualiser leurs
+              tournées de boîtes aux lettres. Le principe est simple : vous rejoignez une tournée
+              existante avec d'autres entreprises locales, ce qui permet de partager les frais et
+              d'obtenir un tarif nettement plus avantageux qu'une distribution en solo.
             </p>
-            
-            <div 
+
+            <div
               ref={ctaRef}
               className="hero-cta"
               style={{
@@ -161,8 +151,8 @@ export default function Hero() {
                 zIndex: 10
               }}
             >
-              <a 
-                href="/tournees" 
+              <a
+                href="/tournees"
                 className="btn btn-primary btn-large"
                 style={{
                   background: 'var(--gradient-main)',
@@ -189,9 +179,9 @@ export default function Hero() {
               >
                 Voir le Planning
               </a>
-              
-              <a 
-                href="tel:+33978288462" 
+
+              <a
+                href="tel:+33978288462"
                 className="btn btn-secondary btn-large"
                 style={{
                   background: 'var(--bg-glass)',
@@ -219,22 +209,21 @@ export default function Hero() {
                   })
                 }}
               >
-                <svg 
-                  width="20" 
-                  height="20" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path 
-                    d="M22 16.92V19.92C22.0011 20.1985 21.9441 20.4742 21.8325 20.7292C21.7209 20.9841 21.5573 21.2126 21.3522 21.3992C21.1471 21.5858 20.9053 21.7262 20.6426 21.8111C20.38 21.896 20.1025 21.9235 19.83 21.892C16.7438 21.4556 13.787 20.3831 11.19 18.75C8.77382 17.3057 6.72533 15.2572 5.28 12.84C3.64698 10.2435 2.57451 7.28737 2.138 4.202C2.10651 3.92947 2.13399 3.652 2.21891 3.38936C2.30382 3.12672 2.44416 2.88489 2.63078 2.67978C2.8174 2.47467 3.04589 2.31107 3.30085 2.19946C3.55581 2.08785 3.8315 2.03086 4.11 2.032H7.11C7.59357 2.03203 8.06714 2.16723 8.47473 2.42161C8.88232 2.67599 9.20787 3.03916 9.414 3.468L10.844 6.3C11.0481 6.72454 11.1231 7.20104 11.0606 7.67012C10.9981 8.1392 10.8006 8.58172 10.492 8.94L8.5 11.06C9.69604 13.4085 11.5915 15.304 13.94 16.5L16.06 14.508C16.4183 14.1994 16.8608 14.0019 17.3299 13.9394C17.799 13.8769 18.2755 13.9519 18.7 14.156L21.532 15.586C21.9608 15.7921 22.324 16.1177 22.5784 16.5253C22.8328 16.9329 22.968 17.4064 22.968 17.89V20.89H22.968Z" 
+                  <path
+                    d="M22 16.92V19.92C22.0011 20.1985 21.9441 20.4742 21.8325 20.7292C21.7209 20.9841 21.5573 21.2126 21.3522 21.3992C21.1471 21.5858 20.9053 21.7262 20.6426 21.8111C20.38 21.896 20.1025 21.9235 19.83 21.892C16.7438 21.4556 13.787 20.3831 11.19 18.75C8.77382 17.3057 6.72533 15.2572 5.28 12.84C3.64698 10.2435 2.57451 7.28737 2.138 4.202C2.10651 3.92947 2.13399 3.652 2.21891 3.38936C2.30382 3.12672 2.44416 2.88489 2.63078 2.67978C2.8174 2.47467 3.04589 2.31107 3.30085 2.19946C3.55581 2.08785 3.8315 2.03086 4.11 2.032H7.11C7.59357 2.03203 8.06714 2.16723 8.47473 2.42161C8.88232 2.67599 9.20787 3.03916 9.414 3.468L10.844 6.3C11.0481 6.72454 11.1231 7.20104 11.0606 7.67012C10.9981 8.1392 10.8006 8.58172 10.492 8.94L8.5 11.06C9.69604 13.4085 11.5915 15.304 13.94 16.5L16.06 14.508C16.4183 14.1994 16.8608 14.0019 17.3299 13.9394C17.799 13.8769 18.2755 13.9519 18.7 14.156L21.532 15.586C21.9608 15.7921 22.324 16.1177 22.5784 16.5253C22.8328 16.9329 22.968 17.4064 22.968 17.89V20.89H22.968Z"
                     fill="currentColor"
                   />
                 </svg>
                 09 78 28 84 62
               </a>
             </div>
-
           </div>
         </div>
       </div>

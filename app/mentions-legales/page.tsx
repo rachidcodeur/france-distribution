@@ -58,11 +58,11 @@ export default function MentionsLegalesPage() {
                   lineHeight: 1.8,
                   fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                 }}>
-                  <p style={{ marginBottom: 'var(--spacing-xs)' }}><strong style={{ color: 'var(--text-primary)' }}>Distribution Flyers</strong></p>
+                  <p style={{ marginBottom: 'var(--spacing-xs)' }}><strong style={{ color: 'var(--text-primary)' }}>France Distribution</strong></p>
                   <p style={{ marginBottom: 'var(--spacing-xs)' }}>Siège social : 5 Rue Fénelon 33000 BORDEAUX</p>
                   <p style={{ marginBottom: 'var(--spacing-xs)' }}>Téléphone : <a href="tel:+33978288462" style={{ color: 'var(--orange-primary)', textDecoration: 'none' }}>09 78 28 84 62</a></p>
                   <p style={{ marginBottom: 'var(--spacing-xs)' }}>Email : <a href="mailto:contact@distribution-flyers.fr" style={{ color: 'var(--orange-primary)', textDecoration: 'none' }}>contact@distribution-flyers.fr</a></p>
-                  <p>Directeur de la publication : Distribution Flyers</p>
+                  <p>Directeur de la publication : France Distribution</p>
                 </div>
               </div>
 
@@ -82,10 +82,8 @@ export default function MentionsLegalesPage() {
                   lineHeight: 1.8,
                   fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                 }}>
-                  <p style={{ marginBottom: 'var(--spacing-xs)' }}><strong style={{ color: 'var(--text-primary)' }}>O2switch</strong></p>
-                  <p style={{ marginBottom: 'var(--spacing-xs)' }}>222-224 Boulevard Gustave Flaubert 63000 Clermont-Ferrand</p>
-                  <p style={{ marginBottom: 'var(--spacing-xs)' }}>04 44 44 60 40</p>
-                  <p><a href="http://www.o2switch.fr/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--orange-primary)', textDecoration: 'none' }}>http://www.o2switch.fr/</a></p>
+                  <p style={{ marginBottom: 'var(--spacing-xs)' }}><strong style={{ color: 'var(--text-primary)' }}>Hostinger</strong></p>
+                  <p><a href="https://www.hostinger.fr/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--orange-primary)', textDecoration: 'none' }}>https://www.hostinger.fr/</a></p>
                 </div>
               </div>
 
@@ -154,7 +152,7 @@ export default function MentionsLegalesPage() {
                   </p>
                   <ul style={{ marginBottom: 'var(--spacing-md)', paddingLeft: 'var(--spacing-lg)' }}>
                     <li style={{ marginBottom: 'var(--spacing-xs)' }}>Par email : <a href="mailto:contact@distribution-flyers.fr" style={{ color: 'var(--orange-primary)', textDecoration: 'none' }}>contact@distribution-flyers.fr</a></li>
-                    <li>Par courrier : Distribution Flyers - 5 Rue Fénelon 33000 BORDEAUX</li>
+                    <li>Par courrier : France Distribution - 5 Rue Fénelon 33000 BORDEAUX</li>
                   </ul>
                   <p style={{ marginBottom: 'var(--spacing-sm)' }}>
                     Si vous estimez, après nous avoir contactés, que vos droits « Informatique et Libertés » ne sont pas respectés, vous pouvez adresser une réclamation à la CNIL :
@@ -224,10 +222,10 @@ export default function MentionsLegalesPage() {
                     Si vous constatez une lacune, erreur ou ce qui paraît être un dysfonctionnement, merci de bien vouloir le signaler par email, à l'adresse <a href="mailto:contact@distribution-flyers.fr" style={{ color: 'var(--orange-primary)', textDecoration: 'none' }}>contact@distribution-flyers.fr</a>, en décrivant le problème de la manière la plus précise possible (page posant problème, type d'ordinateur et de navigateur utilisé, …).
                   </p>
                   <p style={{ marginBottom: 'var(--spacing-md)' }}>
-                    Tout contenu téléchargé se fait aux risques et périls de l'utilisateur et sous sa seule responsabilité. En conséquence, Distribution Flyers ne saurait être tenu responsable d'un quelconque dommage subi par l'ordinateur de l'utilisateur ou d'une quelconque perte de données consécutives au téléchargement.
+                    Tout contenu téléchargé se fait aux risques et périls de l'utilisateur et sous sa seule responsabilité. En conséquence, France Distribution ne saurait être tenu responsable d'un quelconque dommage subi par l'ordinateur de l'utilisateur ou d'une quelconque perte de données consécutives au téléchargement.
                   </p>
                   <p>
-                    Les liens hypertextes mis en place dans le cadre du présent site internet en direction d'autres ressources présentes sur le réseau Internet ne sauraient engager la responsabilité de Distribution Flyers.
+                    Les liens hypertextes mis en place dans le cadre du présent site internet en direction d'autres ressources présentes sur le réseau Internet ne sauraient engager la responsabilité de France Distribution.
                   </p>
                 </div>
               </div>
@@ -249,7 +247,7 @@ export default function MentionsLegalesPage() {
                   fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                 }}>
                   <p>
-                    Les présentes conditions sont régies par les lois françaises et toute contestation ou litiges qui pourraient naître de l'interprétation ou de l'exécution de celles-ci seront de la compétence exclusive des tribunaux dont dépend le siège social de Distribution Flyers. La langue de référence, pour le règlement de contentieux éventuels, est le français.
+                    Les présentes conditions sont régies par les lois françaises et toute contestation ou litiges qui pourraient naître de l'interprétation ou de l'exécution de celles-ci seront de la compétence exclusive des tribunaux dont dépend le siège social de France Distribution. La langue de référence, pour le règlement de contentieux éventuels, est le français.
                   </p>
                 </div>
               </div>

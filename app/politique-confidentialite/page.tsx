@@ -79,7 +79,7 @@ export default function PolitiqueConfidentialitePage() {
                   <p style={{ marginBottom: 'var(--spacing-sm)' }}>
                     Le responsable du traitement des données personnelles collectées sur le site distribution-flyers.fr est :
                   </p>
-                  <p style={{ marginBottom: 'var(--spacing-xs)' }}><strong style={{ color: 'var(--text-primary)' }}>Distribution Flyers</strong></p>
+                  <p style={{ marginBottom: 'var(--spacing-xs)' }}><strong style={{ color: 'var(--text-primary)' }}>France Distribution</strong></p>
                   <p style={{ marginBottom: 'var(--spacing-xs)' }}>5 Rue Fénelon 33000 BORDEAUX</p>
                   <p style={{ marginBottom: 'var(--spacing-xs)' }}>Email : <a href="mailto:contact@distribution-flyers.fr" style={{ color: 'var(--orange-primary)', textDecoration: 'none' }}>contact@distribution-flyers.fr</a></p>
                   <p style={{ marginBottom: 'var(--spacing-xs)' }}>Téléphone : <a href="tel:+33978288462" style={{ color: 'var(--orange-primary)', textDecoration: 'none' }}>09 78 28 84 62</a></p>
@@ -255,7 +255,7 @@ export default function PolitiqueConfidentialitePage() {
                     <li style={{ marginBottom: 'var(--spacing-xs)' }}><strong style={{ color: 'var(--text-primary)' }}>Nos équipes internes</strong> : Service commercial, service client, équipes de distribution</li>
                     <li style={{ marginBottom: 'var(--spacing-xs)' }}><strong style={{ color: 'var(--text-primary)' }}>Nos prestataires techniques</strong> :
                       <ul style={{ marginTop: 'var(--spacing-xs)', paddingLeft: 'var(--spacing-lg)' }}>
-                        <li>Hébergeur web (O2switch)</li>
+                        <li>Hébergeur web (Hostinger)</li>
                         <li>Services d'emailing (si applicable)</li>
                         <li>Services d'analyse web (Google Analytics)</li>
                       </ul>

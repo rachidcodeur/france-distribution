@@ -89,7 +89,7 @@ function DashboardContent() {
       }
 
       // Grilles tarifaires d'impression
-      const printingPricesA6 = [
+      const printingPricesA5 = [
         { quantity: 1000, price: 117.0 },
         { quantity: 1500, price: 135.0 },
         { quantity: 2500, price: 123.0 },
@@ -109,7 +109,7 @@ function DashboardContent() {
         { quantity: 200000, price: 4965.0 },
       ]
 
-      const printingPricesA5 = [
+      const printingPricesA6 = [
         { quantity: 1000, price: 73.5 },
         { quantity: 1500, price: 93.0 },
         { quantity: 2500, price: 72.0 },

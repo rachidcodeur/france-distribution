@@ -40,7 +40,7 @@ export default function ConfirmationPage() {
   const [phoneError, setPhoneError] = useState(false)
 
   // Grilles tarifaires d'impression
-  const printingPricesA6 = [
+  const printingPricesA5 = [
     { quantity: 1000, price: 117.00 },
     { quantity: 1500, price: 135.00 },
     { quantity: 2500, price: 123.00 },
@@ -60,7 +60,7 @@ export default function ConfirmationPage() {
     { quantity: 200000, price: 4965.00 }
   ]
 
-  const printingPricesA5 = [
+  const printingPricesA6 = [
     { quantity: 1000, price: 73.50 },
     { quantity: 1500, price: 93.00 },
     { quantity: 2500, price: 72.00 },
@@ -352,7 +352,7 @@ export default function ConfirmationPage() {
                 marginBottom: '12px',
                 fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
               }}>
-                Confirmer votre sélection
+                Informations sur votre flyer
               </h1>
               <p style={{
                 fontSize: '15px',
@@ -364,107 +364,10 @@ export default function ConfirmationPage() {
               </p>
             </div>
 
-          {/* Résumé de la sélection */}
-          <div style={{
-            background: '#1a2236',
-            borderRadius: '14px',
-            padding: '24px',
-            marginBottom: '32px',
-            border: '2px solid rgba(255,255,255,0.08)'
-          }}>
-            <h2 style={{
-              color: '#F8FAFC',
-              marginBottom: '20px',
-              fontSize: '24px',
-              fontWeight: 700,
-              paddingBottom: '12px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
-            }}>
-              Résumé de votre sélection
-            </h2>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '24px',
-              marginBottom: '24px'
-            }}>
-              <div>
-                <div style={{ color: '#94A3B8', fontSize: '15px', marginBottom: '8px', fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
-                  Secteurs IRIS sélectionnés
-                </div>
-                <div style={{ color: '#F8FAFC', fontSize: '24px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
-                  {storedData.selectedIris.length}
-                </div>
-              </div>
-              <div>
-                <div style={{ color: '#94A3B8', fontSize: '15px', marginBottom: '8px', fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
-                  Total logements
-                </div>
-                <div style={{ color: '#F97316', fontSize: '24px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
-                  {Math.round(storedData.totalLogements).toLocaleString('fr-FR')}
-                </div>
-              </div>
-            </div>
-
-            <div style={{
-              paddingTop: '20px',
-              borderTop: '1px solid rgba(255,255,255,0.06)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: calculatePrintingCost > 0 ? '16px' : '0' }}>
-                <span style={{ color: '#94A3B8', fontSize: '15px', fontWeight: 500, fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
-                  Coût de distribution
-                </span>
-                <span style={{ color: '#CBD5E1', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
-                  {storedData.coutDistribution.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
-                </span>
-              </div>
-              {calculatePrintingCost > 0 && selectedFlyerFormat && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <span style={{ color: '#94A3B8', fontSize: '15px', fontWeight: 500, fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
-                    Coût d'impression (Format {selectedFlyerFormat})
-                  </span>
-                  <span style={{ color: '#CBD5E1', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
-                    {calculatePrintingCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ HT
-                  </span>
-                </div>
-              )}
-              {(calculatePrintingCost > 0 || storedData.coutDistribution > 0) && (
-                <div style={{
-                  paddingTop: '20px',
-                  borderTop: '1px solid rgba(240, 234, 229, 0.3)',
-                  marginTop: '16px'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#F8FAFC', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
-                      Total
-                    </span>
-                    <span style={{ color: 'rgba(249, 115, 22, 1)', fontSize: '26px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
-                      {(storedData.coutDistribution + calculatePrintingCost).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Section flyer */}
           <div style={{
             marginBottom: '32px'
           }}>
-            <h2 style={{
-              color: '#F8FAFC',
-              marginBottom: '20px',
-              fontSize: '24px',
-              fontWeight: 700,
-              paddingBottom: '12px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
-            }}>
-              Informations sur votre flyer
-            </h2>
-
             <p style={{ 
               color: '#CBD5E1', 
               marginBottom: '24px',
@@ -1082,7 +985,7 @@ export default function ConfirmationPage() {
                       marginBottom: '6px',
                       fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
-                      Mise en page A6
+                      A6 - 170 gr - Recto Verso
                     </div>
                     <div style={{
                       color: '#94A3B8',
@@ -1128,7 +1031,7 @@ export default function ConfirmationPage() {
                       marginBottom: '6px',
                       fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
-                      Mise en page A5
+                      A5 - 170 gr - Recto Verso
                     </div>
                     <div style={{
                       color: '#94A3B8',

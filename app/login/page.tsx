@@ -44,12 +44,14 @@ function LoginPageContent() {
   const [storedData, setStoredData] = useState<StoredSelection | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const modeParam = searchParams.get('mode')
-  const [isSignUp, setIsSignUp] = useState(modeParam !== 'signin')
+  const [isSignUp, setIsSignUp] = useState(modeParam !== 'signin' && modeParam !== 'reset')
+  const [isResetMode, setIsResetMode] = useState(modeParam === 'reset')
 
   // Mettre à jour isSignUp quand le paramètre mode change dans l'URL
   useEffect(() => {
     const currentMode = searchParams.get('mode')
-    setIsSignUp(currentMode !== 'signin')
+    setIsResetMode(currentMode === 'reset')
+    setIsSignUp(currentMode !== 'signin' && currentMode !== 'reset')
     // Réinitialiser les erreurs et messages quand on change de mode
     setError(null)
     setMessage(null)
@@ -342,7 +344,27 @@ function LoginPageContent() {
     }
 
     try {
-      if (isSignUp) {
+      if (isResetMode) {
+        if (password.length < 6) {
+          showErrorToast('Le mot de passe doit contenir au moins 6 caractères.')
+          setLoading(false)
+          return
+        }
+
+        if (password !== confirmPassword) {
+          showErrorToast('Les mots de passe ne correspondent pas.')
+          setLoading(false)
+          return
+        }
+
+        const { error: updateError } = await supabase.auth.updateUser({ password })
+        if (updateError) throw updateError
+
+        setToast({ message: 'Mot de passe mis à jour avec succès.', type: 'success' })
+        setTimeout(() => {
+          router.push('/login?mode=signin')
+        }, 1200)
+      } else if (isSignUp) {
         if (!isValidEmail(email)) {
           showErrorToast('Adresse email invalide.')
           setLoading(false)
@@ -532,6 +554,32 @@ function LoginPageContent() {
     }
   }
 
+  const handleForgotPassword = async () => {
+    if (!isSupabaseConfigured()) {
+      showErrorToast('Supabase n\'est pas configuré. Veuillez configurer vos variables d\'environnement.')
+      return
+    }
+    if (!isValidEmail(email)) {
+      showErrorToast('Veuillez saisir une adresse email valide pour réinitialiser votre mot de passe.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery`
+      })
+      if (resetError) throw resetError
+
+      setToast({ message: 'Email de réinitialisation envoyé. Vérifiez votre boîte mail.', type: 'success' })
+    } catch (err: any) {
+      console.error('❌ Erreur reset password:', err)
+      showErrorToast(getAuthErrorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Si l'utilisateur est connecté et qu'il n'y a pas de données à sauvegarder, rediriger
   useEffect(() => {
     if (user && !storedData && !loading) {
@@ -563,7 +611,7 @@ function LoginPageContent() {
                 textAlign: 'center',
                 fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
               }}>
-                {isSignUp ? 'Créer un compte' : 'Se connecter'}
+                {isResetMode ? 'Réinitialiser le mot de passe' : (isSignUp ? 'Créer un compte' : 'Se connecter')}
               </h1>
 
               {message && (
@@ -857,42 +905,44 @@ function LoginPageContent() {
 
                   </>
                 )}
-                <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                  <label htmlFor="email" style={{
-                    display: 'block',
-                    marginBottom: 'var(--spacing-xs)',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
-                  }}>
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onCopy={(e) => isSignUp && e.preventDefault()}
-                    onPaste={(e) => isSignUp && e.preventDefault()}
-                    onCut={(e) => isSignUp && e.preventDefault()}
-                    required
-                    disabled={loading || saving}
-                    className="input-placeholder-white"
-                    style={{
-                      width: '100%',
-                      padding: '12px 12px',
-                      background: '#222b44',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '8px',
+                {!isResetMode && (
+                  <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+                    <label htmlFor="email" style={{
+                      display: 'block',
+                      marginBottom: 'var(--spacing-xs)',
                       color: 'var(--text-primary)',
-                      fontSize: '16px',
-                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
-                      transition: 'all 0.25s ease'
-                    }}
-                    placeholder="votre@email.com"
-                  />
-                </div>
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                    }}>
+                      Email
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onCopy={(e) => isSignUp && e.preventDefault()}
+                      onPaste={(e) => isSignUp && e.preventDefault()}
+                      onCut={(e) => isSignUp && e.preventDefault()}
+                      required
+                      disabled={loading || saving}
+                      className="input-placeholder-white"
+                      style={{
+                        width: '100%',
+                        padding: '12px 12px',
+                        background: '#222b44',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '8px',
+                        color: 'var(--text-primary)',
+                        fontSize: '16px',
+                        fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif',
+                        transition: 'all 0.25s ease'
+                      }}
+                      placeholder="votre@email.com"
+                    />
+                  </div>
+                )}
 
                 {isSignUp && (
                   <div style={{ marginBottom: 'var(--spacing-lg)' }}>
@@ -939,7 +989,7 @@ function LoginPageContent() {
                     fontWeight: 600,
                     fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                   }}>
-                    Mot de passe
+                    {isResetMode ? 'Nouveau mot de passe' : 'Mot de passe'}
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
@@ -987,7 +1037,7 @@ function LoginPageContent() {
                   </div>
                 </div>
 
-                {isSignUp && (
+                {(isSignUp || isResetMode) && (
                   <div style={{ marginBottom: 'var(--spacing-lg)' }}>
                     <label htmlFor="confirmPassword" style={{
                       display: 'block',
@@ -997,7 +1047,7 @@ function LoginPageContent() {
                       fontWeight: 600,
                       fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}>
-                      Confirmer le mot de passe
+                      {isResetMode ? 'Confirmer le nouveau mot de passe' : 'Confirmer le mot de passe'}
                     </label>
                     <div style={{ position: 'relative' }}>
                       <input
@@ -1057,8 +1107,34 @@ function LoginPageContent() {
                     cursor: (loading || saving) ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  {loading ? 'Chargement...' : saving ? 'Sauvegarde...' : (isSignUp ? 'Créer mon compte' : 'Se connecter')}
+                  {loading
+                    ? 'Chargement...'
+                    : saving
+                      ? 'Sauvegarde...'
+                      : isResetMode
+                        ? 'Mettre à jour le mot de passe'
+                        : (isSignUp ? 'Créer mon compte' : 'Se connecter')}
                 </button>
+
+                {!isSignUp && !isResetMode && (
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-md)' }}>
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#FFFFFF',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        textDecoration: 'underline',
+                        fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
+                      }}
+                    >
+                      Mot de passe oublié ?
+                    </button>
+                  </div>
+                )}
 
                 <div style={{
                   textAlign: 'center',
@@ -1068,6 +1144,11 @@ function LoginPageContent() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (isResetMode) {
+                        router.push('/login?mode=signin')
+                        return
+                      }
+                      setIsResetMode(false)
                       setIsSignUp(!isSignUp)
                       setConfirmEmail('')
                       setError(null)
@@ -1083,9 +1164,11 @@ function LoginPageContent() {
                       fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif'
                     }}
                   >
-                    {isSignUp 
-                      ? 'Déjà un compte ? Se connecter'
-                      : 'Pas encore de compte ? Créer un compte'}
+                    {isResetMode
+                      ? 'Retour à la connexion'
+                      : (isSignUp 
+                        ? 'Déjà un compte ? Se connecter'
+                        : 'Pas encore de compte ? Créer un compte')}
                   </button>
                 </div>
               </form>

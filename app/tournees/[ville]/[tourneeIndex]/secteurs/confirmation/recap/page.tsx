@@ -43,7 +43,7 @@ export default function RecapPage() {
   const [saving, setSaving] = useState(false)
 
   // Grilles tarifaires d'impression
-  const printingPricesA6 = [
+  const printingPricesA5 = [
     { quantity: 1000, price: 117.00 },
     { quantity: 1500, price: 135.00 },
     { quantity: 2500, price: 123.00 },
@@ -63,7 +63,7 @@ export default function RecapPage() {
     { quantity: 200000, price: 4965.00 }
   ]
 
-  const printingPricesA5 = [
+  const printingPricesA6 = [
     { quantity: 1000, price: 73.50 },
     { quantity: 1500, price: 93.00 },
     { quantity: 2500, price: 72.00 },
@@ -350,6 +350,12 @@ export default function RecapPage() {
   }
 
   const flyerFormat = storedData.selectedFlyerFormat // Format uniquement pour les créations
+  const flyerFormatLabel =
+    flyerFormat === 'A5'
+      ? 'A5 - 170 gr - Recto Verso'
+      : flyerFormat === 'A6'
+        ? 'A6 - 170 gr - Recto Verso'
+        : null
 
   return (
     <section style={{ marginTop: '88px', padding: '60px 20px', background: 'linear-gradient(135deg, #0B1220 0%, #0E1A2F 50%, #111C34 100%)', minHeight: 'calc(100vh - 88px)' }}>
@@ -375,7 +381,7 @@ export default function RecapPage() {
             </Link>
 
             <div style={{
-              background: '#0F1B2D',
+              background: '#242b42',
               borderRadius: '20px',
               padding: '40px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.45)',
@@ -389,7 +395,7 @@ export default function RecapPage() {
                   marginBottom: '12px',
                   fontFamily: 'var(--font-montserrat), Montserrat, sans-serif'
                 }}>
-                  Récapitulatif final
+                  Résumé de votre sélection
                 </h1>
                 <p style={{
                   fontSize: '15px',
@@ -402,7 +408,7 @@ export default function RecapPage() {
               </div>
 
             <div style={{
-              background: '#0C1626',
+              background: '#1c2235',
               borderRadius: '14px',
               padding: '24px',
               marginBottom: '32px',
@@ -459,7 +465,7 @@ export default function RecapPage() {
                 {calculateFlyerCreationCost > 0 && flyerFormat && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: calculatePrintingCost > 0 ? '16px' : '0' }}>
                     <span style={{ color: '#94A3B8', fontSize: '15px', fontWeight: 500, fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
-                      Coût de création (Format {flyerFormat})
+                      Coût de création (Format {flyerFormatLabel ?? flyerFormat})
                     </span>
                     <span style={{ color: '#CBD5E1', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                       {calculateFlyerCreationCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ HT
@@ -469,7 +475,7 @@ export default function RecapPage() {
                 {calculatePrintingCost > 0 && flyerFormat && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#94A3B8', fontSize: '15px', fontWeight: 500, fontFamily: 'var(--font-poppins), Poppins, Montserrat, sans-serif' }}>
-                      Coût d'impression (Format {flyerFormat})
+                      Coût d'impression (Format {flyerFormatLabel ?? flyerFormat})
                     </span>
                     <span style={{ color: '#CBD5E1', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>
                       {calculatePrintingCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ HT
