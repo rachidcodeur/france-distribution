@@ -96,6 +96,7 @@ export default function AboutSection() {
   return (
     <section 
       ref={sectionRef}
+      id="pourquoi-france-distribution"
       style={{
         padding: 'var(--spacing-2xl) 0',
         background: 'transparent',

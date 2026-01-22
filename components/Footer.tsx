@@ -25,13 +25,12 @@ export default function Footer() {
             </p>
           </div>
           <div className="footer-section">
-            <h4 className="footer-title">Navigation</h4>
+            <h4 className="footer-title">Plan du site</h4>
             <ul className="footer-links">
-              <li><a href="#accueil">Annuaire</a></li>
-              <li><a href="#features">Mutualisation</a></li>
-              <li><a href="#tarifs">Tarifs</a></li>
-              <li><a href="#about">À propos</a></li>
-              <li><Link href="/mentions-legales">Mentions légales</Link></li>
+              <li><a href="/#pourquoi-france-distribution">À propos</a></li>
+              <li><Link href="/tournees">Tournées</Link></li>
+              <li><a href="/#faq">FAQ</a></li>
+              <li><Link href="/contact">Contact</Link></li>
             </ul>
           </div>
           <div className="footer-section">

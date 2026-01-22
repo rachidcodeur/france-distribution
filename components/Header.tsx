@@ -161,6 +161,7 @@ export default function Header() {
           </div>
           <ul className={`nav-links ${isMenuOpen ? 'active' : ''}`} id="navLinks">
             <li><Link href="/tournees" className="nav-link" onClick={closeMenu}>Tournées</Link></li>
+            <li><Link href="/#pourquoi-france-distribution" className="nav-link" onClick={closeMenu}>À propos</Link></li>
             <li><Link href="/#faq" className="nav-link" onClick={closeMenu}>FAQ</Link></li>
             <li><Link href="/contact" className="nav-link" onClick={closeMenu}>Contact</Link></li>
             {!user && !authLoading && (
