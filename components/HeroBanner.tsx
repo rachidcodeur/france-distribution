@@ -104,7 +104,7 @@ export default function HeroBanner() {
                 letterSpacing: '-0.02em'
               }}
             >
-              Distribution de FLyers mutualisee qui réduit vos coûts jusqu&apos;à{' '}
+              Distribution de Flyers mutualisée qui réduit vos coûts jusqu&apos;à{' '}
               <span
                 className="cinquante"
                 style={{
