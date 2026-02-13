@@ -104,7 +104,7 @@ export default function HeroBanner() {
                 letterSpacing: '-0.02em'
               }}
             >
-              La distribution mutualisée qui réduit vos coûts jusqu'à{' '}
+              Distribution de FLyers mutualisee qui réduit vos coûts jusqu&apos;à{' '}
               <span
                 className="cinquante"
                 style={{
@@ -116,7 +116,7 @@ export default function HeroBanner() {
                   position: 'relative'
                 }}
               >
-                -50%
+                50 %
               </span>
             </h1>
 
