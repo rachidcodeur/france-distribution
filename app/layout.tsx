@@ -17,8 +17,11 @@ const poppins = Poppins({
 })
 
 export const metadata: Metadata = {
-  title: 'France Distribution - Distribution mutualisée de flyers',
-  description: 'La distribution mutualisée qui réduit vos coûts jusqu\'à -50%. Couverture France entière, calendrier trimestriel, transparence totale.',
+  title: 'Distribution de flyers mutualisée en France - France Distribution',
+  description: 'Plateforme de distribution de flyers mutualisée dans tous les départements de France. Jusqu\'à -50% d\'économies, tournées partagées, planning en ligne et suivi transparent avec France Distribution.',
+  verification: {
+    google: 'OWd49_dIS0fbB-SYI-qV7dDnyfm6HslcppbRas_EXkQ',
+  },
   icons: {
     icon: '/favicon-france-distribution.png',
     shortcut: '/favicon-france-distribution.png',
