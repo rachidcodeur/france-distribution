@@ -1,6 +1,6 @@
  'use client'
  
- import { useEffect, useMemo, useState } from 'react'
+ import { Suspense, useEffect, useMemo, useState } from 'react'
  import { useSearchParams } from 'next/navigation'
  import Header from '@/components/Header'
  import Footer from '@/components/Footer'
@@ -8,7 +8,7 @@
  import Toast from '@/components/Toast'
  import { isValidFrenchPhone } from '@/lib/phoneValidation'
  
- export default function DevisPage() {
+ function DevisContent() {
    const searchParams = useSearchParams()
    const cityParam = useMemo(() => searchParams.get('ville') || '', [searchParams])
    const [formData, setFormData] = useState({
@@ -287,5 +287,13 @@
        <Footer />
        <GSAPAnimations />
      </main>
+   )
+ }
+
+ export default function DevisPage() {
+   return (
+     <Suspense fallback={null}>
+       <DevisContent />
+     </Suspense>
    )
  }
