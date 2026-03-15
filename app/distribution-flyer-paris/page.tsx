@@ -3,7 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import GSAPAnimations from '@/components/GSAPAnimations'
+import styles from './ParisPage.module.css'
 
 export const metadata: Metadata = {
   title: 'Diffusion de flyer et prospectus à Paris',
@@ -16,7 +16,7 @@ export default function ParisPage() {
     <main>
       <Header />
       <section
-        className="city-hero-section"
+        className={styles.cityHeroSection}
         style={{
           marginTop: '88px',
           padding: 'var(--spacing-4xl) 0',
@@ -24,35 +24,38 @@ export default function ParisPage() {
         }}
       >
         <div className="container">
-          <div className="city-hero">
-            <div className="city-hero-content">
-              <h1 className="city-hero-title">Diffusion de flyer et prospectus à Paris</h1>
-              <p className="city-hero-text">
+          <div className={styles.cityHero}>
+            <div className={styles.cityHeroContent}>
+              <h1 className={styles.cityHeroTitle}>Diffusion de flyer et prospectus à Paris</h1>
+              <p className={styles.cityHeroText}>
                 À Paris (75), nous organisons des campagnes de distribution adaptées aux flux locaux :
                 quartiers commerçants, zones résidentielles et grands axes comme les Champs-Élysées ou
                 les abords de la Gare de Lyon. Du 1er au 20e arrondissement, nos tournées mutualisées
                 permettent d&apos;optimiser vos budgets tout en gardant un suivi précis.
               </p>
-              <div className="city-hero-actions">
+              <div className={styles.cityHeroActions}>
                 <Link href="/devis?ville=Paris" className="btn btn-primary btn-large">
                   Demander un devis
                 </Link>
               </div>
             </div>
-            <div className="city-hero-media">
+            <div className={styles.cityHeroMedia}>
               <Image
                 src="/images/villes/paris.webp"
                 alt="Vue de Paris pour une campagne de distribution locale"
                 width={720}
                 height={480}
-                className="city-hero-image"
+                className={styles.cityHeroImage}
+                priority
+                fetchPriority="high"
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
           </div>
         </div>
       </section>
 
-      <section className="city-info-section">
+      <section className={styles.cityInfoSection}>
         <div className="container">
           <div className="section-header" style={{ marginBottom: 'var(--spacing-2xl)' }}>
             <h2 className="section-title">Paris, une ville à forte densité de diffusion</h2>
@@ -68,7 +71,7 @@ export default function ParisPage() {
               </span>
             </p>
           </div>
-          <div className="city-info-content">
+          <div className={styles.cityInfoContent}>
             <p>
               Paris est au cœur de la région <strong style={{ color: '#ffffff' }}>Île-de-France</strong> et constitue le département
               <strong style={{ color: '#ffffff' }}>75</strong>. Avec environ <strong style={{ color: '#ffffff' }}>2,1 millions d&apos;habitants</strong>, la capitale
@@ -105,7 +108,7 @@ export default function ParisPage() {
         </div>
       </section>
 
-      <section className="city-services-section">
+      <section className={styles.cityServicesSection}>
         <div className="container">
           <div className="section-header" style={{ marginBottom: 'var(--spacing-2xl)' }}>
             <h2 className="section-title">Nos services de distribution à Paris</h2>
@@ -114,8 +117,8 @@ export default function ParisPage() {
             </p>
           </div>
 
-          <div className="city-service-card">
-            <div className="city-service-content">
+          <div className={styles.cityServiceCard}>
+            <div className={styles.cityServiceContent}>
               <h3>Distribution de flyers et prospectus à Paris</h3>
               <p>
                 Créer de la visibilité dans l&apos;espace public parisien repose sur la capacité à
@@ -139,19 +142,19 @@ export default function ParisPage() {
                 Devis gratuit
               </Link>
             </div>
-            <div className="city-service-media">
+            <div className={styles.cityServiceMedia}>
               <Image
                 src="/images/services villes/distri flyers et propectus.webp"
                 alt="Distribution de flyers et prospectus à Paris"
                 width={600}
                 height={420}
-                className="city-service-image"
+                className={styles.cityServiceImage}
               />
             </div>
           </div>
 
-          <div className="city-service-card">
-            <div className="city-service-content">
+          <div className={styles.cityServiceCard}>
+            <div className={styles.cityServiceContent}>
               <h3>Distribution de bulletins et journaux municipaux</h3>
               <p>
                 Informer efficacement les habitants parisiens implique une distribution régulière
@@ -173,19 +176,19 @@ export default function ParisPage() {
                 Devis gratuit
               </Link>
             </div>
-            <div className="city-service-media">
+            <div className={styles.cityServiceMedia}>
               <Image
                 src="/images/services villes/distri journal municipal.webp"
                 alt="Distribution de journaux municipaux à Paris"
                 width={600}
                 height={420}
-                className="city-service-image"
+                className={styles.cityServiceImage}
               />
             </div>
           </div>
 
-          <div className="city-service-card">
-            <div className="city-service-content">
+          <div className={styles.cityServiceCard}>
+            <div className={styles.cityServiceContent}>
               <h3>Distribution d&apos;imprimés publicitaires en Île-de-France</h3>
               <p>
                 La distribution d&apos;imprimés publicitaires s&apos;adresse aux enseignes locales et aux
@@ -207,20 +210,20 @@ export default function ParisPage() {
                 Devis gratuit
               </Link>
             </div>
-            <div className="city-service-media">
+            <div className={styles.cityServiceMedia}>
               <Image
                 src="/images/services villes/distribution imprimes publicitaires.webp"
                 alt="Distribution d'imprimés publicitaires à Paris"
                 width={600}
                 height={420}
-                className="city-service-image"
+                className={styles.cityServiceImage}
               />
             </div>
           </div>
         </div>
       </section>
 
-      <section className="city-methods-section">
+      <section className={styles.cityMethodsSection}>
         <div className="container">
           <div className="section-header" style={{ marginBottom: 'var(--spacing-2xl)' }}>
             <h2 className="section-title">Nos différents canaux de distribution à Paris</h2>
@@ -228,16 +231,16 @@ export default function ParisPage() {
               Deux canaux complémentaires pour toucher efficacement vos audiences parisiennes.
             </p>
           </div>
-          <div className="city-methods-grid">
-            <div className="city-method-card">
+          <div className={styles.cityMethodsGrid}>
+            <div className={styles.cityMethodCard}>
               <h3>Distribution en boîtes aux lettres</h3>
-              <div className="city-method-media">
+              <div className={styles.cityMethodMedia}>
                 <Image
                   src="/images/services villes/distribution boites aux lettres.webp"
                   alt="Distribution en boîtes aux lettres à Paris"
                   width={520}
                   height={360}
-                  className="city-method-image"
+                  className={styles.cityMethodImage}
                 />
               </div>
               <p>
@@ -253,15 +256,15 @@ export default function ParisPage() {
                 pour les campagnes qui visent une couverture régulière et une présence locale stable.
               </p>
             </div>
-            <div className="city-method-card">
+            <div className={styles.cityMethodCard}>
               <h3>Street marketing ou main à main</h3>
-              <div className="city-method-media">
+              <div className={styles.cityMethodMedia}>
                 <Image
                   src="/images/street-marketing.webp"
                   alt="Street marketing à Paris pour diffuser vos flyers"
                   width={520}
                   height={360}
-                  className="city-method-image"
+                  className={styles.cityMethodImage}
                 />
               </div>
               <p>
@@ -290,7 +293,7 @@ export default function ParisPage() {
           </div>
         </div>
       </section>
-      <section className="city-nearby-cards-section">
+      <section className={styles.cityNearbyCardsSection}>
         <div className="container">
           <div className="section-header" style={{ marginBottom: 'var(--spacing-xl)' }}>
             <h2 className="section-title">Nos zones d’intervention autour de Paris</h2>
@@ -298,7 +301,7 @@ export default function ParisPage() {
               Nous intervenons dans plusieurs communes de l’Île-de-France pour vos campagnes de distribution.
             </p>
           </div>
-          <div className="city-nearby-cards">
+          <div className={styles.cityNearbyCards}>
             {[
               { name: 'Boulogne-Billancourt', slug: 'boulogne-billancourt', image: '/images/villes/boulogne-billancourt.webp' },
               { name: 'Saint-Denis', slug: 'saint-denis', image: '/images/villes/saint-denis.webp' },
@@ -308,17 +311,18 @@ export default function ParisPage() {
               <Link
                 key={city.slug}
                 href={`/distribution-flyer-${city.slug}`}
-                className="city-nearby-card"
+                className={styles.cityNearbyCard}
               >
-                <div className="city-nearby-card-image">
+                <div className={styles.cityNearbyCardImage}>
                   <Image
                     src={city.image}
                     alt={`Distribution de flyers à ${city.name}`}
                     width={320}
                     height={220}
+                    className={styles.cityNearbyCardImg}
                   />
                 </div>
-                <div className="city-nearby-card-body">
+                <div className={styles.cityNearbyCardBody}>
                   <h3>{city.name}</h3>
                   <span>Cliquez</span>
                 </div>
@@ -328,7 +332,6 @@ export default function ParisPage() {
         </div>
       </section>
       <Footer />
-      <GSAPAnimations />
     </main>
   )
 }

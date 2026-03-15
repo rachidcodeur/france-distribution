@@ -2,7 +2,6 @@
 
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import GSAPAnimations from '@/components/GSAPAnimations'
 import Toast from '@/components/Toast'
 import { useState } from 'react'
 import { isValidFrenchPhone } from '@/lib/phoneValidation'
@@ -551,7 +550,6 @@ export default function ContactPage() {
         </div>
       </section>
       <Footer />
-      <GSAPAnimations />
     </main>
   )
 }

@@ -7,7 +7,6 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import GSAPAnimations from '@/components/GSAPAnimations'
 import Toast from '@/components/Toast'
 import { isValidFrenchPhone } from '@/lib/phoneValidation'
 
@@ -1177,7 +1176,6 @@ function LoginPageContent() {
         </div>
       </section>
       <Footer />
-      <GSAPAnimations />
       {toast && (
         <Toast
           message={toast.message}
@@ -1204,7 +1202,6 @@ export default function LoginPage() {
             </div>
           </section>
           <Footer />
-          <GSAPAnimations />
         </main>
       }
     >

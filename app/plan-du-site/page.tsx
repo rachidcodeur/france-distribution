@@ -3,7 +3,6 @@
  import Link from 'next/link'
  import Header from '@/components/Header'
  import Footer from '@/components/Footer'
- import GSAPAnimations from '@/components/GSAPAnimations'
  
  export default function PlanDuSitePage() {
    return (
@@ -118,7 +117,6 @@
          </div>
        </section>
        <Footer />
-       <GSAPAnimations />
      </main>
    )
  }

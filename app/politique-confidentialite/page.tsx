@@ -2,7 +2,6 @@
 
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import GSAPAnimations from '@/components/GSAPAnimations'
 
 export default function PolitiqueConfidentialitePage() {
   return (
@@ -643,7 +642,6 @@ export default function PolitiqueConfidentialitePage() {
         </div>
       </section>
       <Footer />
-      <GSAPAnimations />
     </main>
   )
 }

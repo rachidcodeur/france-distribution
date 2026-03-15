@@ -2,7 +2,6 @@
 
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import GSAPAnimations from '@/components/GSAPAnimations'
 
 export default function MentionsLegalesPage() {
   return (
@@ -278,7 +277,6 @@ export default function MentionsLegalesPage() {
         </div>
       </section>
       <Footer />
-      <GSAPAnimations />
     </main>
   )
 }

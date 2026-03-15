@@ -3,7 +3,6 @@
 import React from 'react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import GSAPAnimations from '@/components/GSAPAnimations'
 
 export default function SecteursLayout({
   children,
@@ -15,7 +14,6 @@ export default function SecteursLayout({
       <Header />
       {children}
       <Footer />
-      <GSAPAnimations />
     </main>
   )
 }

@@ -9,7 +9,6 @@ import Stats from '@/components/Stats'
 import CTA from '@/components/CTA'
 import FAQ from '@/components/FAQ'
 import Footer from '@/components/Footer'
-import GSAPAnimations from '@/components/GSAPAnimations'
 import Loader from '@/components/Loader'
 
 export default function Home() {
@@ -532,7 +531,6 @@ export default function Home() {
         </div>
         <Footer />
       </div>
-      <GSAPAnimations />
     </main>
   )
 }

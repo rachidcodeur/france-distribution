@@ -4,9 +4,9 @@
  import { useSearchParams } from 'next/navigation'
  import Header from '@/components/Header'
  import Footer from '@/components/Footer'
- import GSAPAnimations from '@/components/GSAPAnimations'
  import Toast from '@/components/Toast'
  import { isValidFrenchPhone } from '@/lib/phoneValidation'
+ import styles from './DevisPage.module.css'
  
  function DevisContent() {
    const searchParams = useSearchParams()
@@ -132,9 +132,9 @@
              </p>
            </div>
  
-           <div className="devis-grid">
-             <form onSubmit={handleSubmit} className="devis-form">
-               <div className="devis-form-row">
+           <div className={styles.devisGrid}>
+             <form onSubmit={handleSubmit} className={styles.devisForm}>
+               <div className={styles.devisFormRow}>
                  <div>
                    <label htmlFor="name">Nom complet *</label>
                    <input
@@ -169,12 +169,12 @@
                      }}
                      required
                      placeholder="06 12 34 56 78"
-                     className={phoneError ? 'input-error' : ''}
+                     className={phoneError ? styles.inputError : ''}
                    />
                  </div>
                </div>
  
-               <div className="devis-form-row">
+               <div className={styles.devisFormRow}>
                  <div>
                    <label htmlFor="email">Votre Email *</label>
                    <input
@@ -228,13 +228,13 @@
                </div>
  
                {submitStatus === 'success' && (
-                 <div className="devis-alert success">
+                 <div className={`${styles.devisAlert} ${styles.devisAlertSuccess}`}>
                    Demande envoyée avec succès ! Nous revenons vers vous rapidement.
                  </div>
                )}
  
                {submitStatus === 'error' && (
-                 <div className="devis-alert error">
+                 <div className={`${styles.devisAlert} ${styles.devisAlertError}`}>
                    Une erreur est survenue. Veuillez réessayer.
                  </div>
                )}
@@ -243,15 +243,15 @@
                  {isSubmitting ? 'Envoi en cours...' : 'Envoyer ma demande'}
                </button>
  
-               <div className="devis-consent">
+               <div className={styles.devisConsent}>
                  <input type="checkbox" id="consent" required />
                  <label htmlFor="consent">Vos données sont 100% sécurisées et confidentielles.</label>
                </div>
              </form>
  
-             <aside className="devis-steps">
+             <aside className={styles.devisSteps}>
                <h2>Comment ça marche ?</h2>
-               <div className="devis-step">
+               <div className={styles.devisStep}>
                  <span>1</span>
                  <div>
                    <h3>Demander un devis</h3>
@@ -261,7 +261,7 @@
                    </p>
                  </div>
                </div>
-               <div className="devis-step">
+               <div className={styles.devisStep}>
                  <span>2</span>
                  <div>
                    <h3>Analyse de votre besoin</h3>
@@ -270,7 +270,7 @@
                    </p>
                  </div>
                </div>
-               <div className="devis-step">
+               <div className={styles.devisStep}>
                  <span>3</span>
                  <div>
                    <h3>Nous vous rappelons</h3>
@@ -285,7 +285,6 @@
          </div>
        </section>
        <Footer />
-       <GSAPAnimations />
      </main>
    )
  }

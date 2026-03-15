@@ -6,7 +6,6 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import GSAPAnimations from '@/components/GSAPAnimations'
 import Toast from '@/components/Toast'
 
 interface IrisSelection {
@@ -660,7 +659,6 @@ export default function AdminPage() {
           </div>
         </section>
         <Footer />
-        <GSAPAnimations />
       </main>
     )
   }
@@ -678,7 +676,6 @@ export default function AdminPage() {
           </div>
         </section>
         <Footer />
-        <GSAPAnimations />
       </main>
     )
   }
@@ -1443,7 +1440,6 @@ export default function AdminPage() {
         </div>
       </section>
       <Footer />
-      <GSAPAnimations />
       {toast && (
         <Toast
           message={toast.message}
