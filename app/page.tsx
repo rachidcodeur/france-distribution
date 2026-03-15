@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import Header from '@/components/Header'
 import HeroBanner from '@/components/HeroBanner'
 import PricingComparison from '@/components/PricingComparison'
@@ -12,6 +13,189 @@ import GSAPAnimations from '@/components/GSAPAnimations'
 import Loader from '@/components/Loader'
 
 export default function Home() {
+  const regions = [
+    {
+      name: 'Île-de-France',
+      cities: [
+        'Paris',
+        'Boulogne-Billancourt',
+        'Saint-Denis',
+        'Argenteuil',
+        'Montreuil',
+        'Nanterre',
+        'Versailles',
+        'Créteil',
+        'Courbevoie',
+        'Vitry-sur-Seine'
+      ]
+    },
+    {
+      name: 'Auvergne-Rhône-Alpes',
+      cities: [
+        'Lyon',
+        'Grenoble',
+        'Saint-Étienne',
+        'Clermont-Ferrand',
+        'Annecy',
+        'Chambéry',
+        'Valence',
+        'Bourg-en-Bresse',
+        'Roanne',
+        'Vénissieux'
+      ]
+    },
+    {
+      name: 'Grand Est',
+      cities: [
+        'Strasbourg',
+        'Reims',
+        'Metz',
+        'Mulhouse',
+        'Nancy',
+        'Troyes',
+        'Colmar',
+        'Charleville-Mézières',
+        'Épinal',
+        'Châlons-en-Champagne'
+      ]
+    },
+    {
+      name: 'Nouvelle-Aquitaine',
+      cities: [
+        'Bordeaux',
+        'Limoges',
+        'Poitiers',
+        'Pau',
+        'La Rochelle',
+        'Bayonne',
+        'Périgueux',
+        'Angoulême',
+        'Brive-la-Gaillarde',
+        'Niort'
+      ]
+    },
+    {
+      name: 'Pays de la Loire',
+      cities: [
+        'Nantes',
+        'Angers',
+        'Le Mans',
+        'Saint-Nazaire',
+        'La Roche-sur-Yon',
+        'Laval',
+        'Cholet',
+        'Saint-Herblain',
+        'Rezé',
+        'Saumur'
+      ]
+    },
+    {
+      name: 'Normandie',
+      cities: [
+        'Rouen',
+        'Caen',
+        'Le Havre',
+        'Cherbourg-en-Cotentin',
+        'Évreux',
+        'Dieppe',
+        'Alençon',
+        'Saint-Lô',
+        'Lisieux',
+        'Bayeux'
+      ]
+    },
+    {
+      name: 'Occitanie',
+      cities: [
+        'Toulouse',
+        'Montpellier',
+        'Nîmes',
+        'Perpignan',
+        'Béziers',
+        'Narbonne',
+        'Albi',
+        'Carcassonne',
+        'Sète',
+        'Tarbes'
+      ]
+    },
+    {
+      name: 'Bretagne',
+      cities: [
+        'Rennes',
+        'Brest',
+        'Quimper',
+        'Lorient',
+        'Vannes',
+        'Saint-Brieuc',
+        'Saint-Malo',
+        'Lannion',
+        'Concarneau',
+        'Morlaix'
+      ]
+    },
+    {
+      name: 'Centre-Val de Loire',
+      cities: [
+        'Orléans',
+        'Tours',
+        'Bourges',
+        'Chartres',
+        'Blois',
+        'Châteauroux',
+        'Joué-lès-Tours',
+        'Vierzon',
+        'Dreux',
+        'Montargis'
+      ]
+    },
+    {
+      name: 'Provence-Alpes-Côte d\'Azur',
+      cities: [
+        'Marseille',
+        'Nice',
+        'Toulon',
+        'Aix-en-Provence',
+        'Avignon',
+        'Cannes',
+        'Antibes',
+        'Fréjus',
+        'Arles',
+        'Gap'
+      ]
+    },
+    {
+      name: 'Hauts-de-France',
+      cities: [
+        'Lille',
+        'Amiens',
+        'Roubaix',
+        'Tourcoing',
+        'Dunkerque',
+        'Calais',
+        'Saint-Quentin',
+        'Arras',
+        'Valenciennes',
+        'Beauvais'
+      ]
+    },
+    {
+      name: 'Bourgogne-Franche-Comté',
+      cities: [
+        'Dijon',
+        'Besançon',
+        'Belfort',
+        'Chalon-sur-Saône',
+        'Nevers',
+        'Auxerre',
+        'Mâcon',
+        'Le Creusot',
+        'Montbéliard',
+        'Dole'
+      ]
+    }
+  ]
+
   return (
     <main>
       <Loader />
@@ -237,6 +421,114 @@ export default function Home() {
             </div>
           </section>
           <FAQ />
+          <section
+            className="communes-section"
+            style={{
+              padding: 'var(--spacing-3xl) 0',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+            }}
+          >
+            <div className="container">
+              <div className="section-header" style={{ marginBottom: 'var(--spacing-2xl)' }}>
+                <h2 className="section-title">Communes couvertes par région</h2>
+                <p className="section-subtitle">
+                  Retrouvez les principales villes où nous intervenons aujourd&apos;hui.
+                </p>
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: 'var(--spacing-md)'
+                }}
+              >
+                {regions.map((region) => (
+                  <div
+                    key={region.name}
+                    style={{
+                      background: 'rgba(23, 28, 40, 0.6)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '16px',
+                      padding: 'var(--spacing-lg)'
+                    }}
+                  >
+                    <h3
+                      style={{
+                        fontSize: '1.1rem',
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                        marginBottom: 'var(--spacing-md)'
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <span style={{ color: 'var(--orange-primary)', display: 'inline-flex' }}>
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M12 2C8.686 2 6 4.686 6 8c0 4.418 6 12 6 12s6-7.582 6-12c0-3.314-2.686-6-6-6Zm0 8.5A2.5 2.5 0 1 1 12 5a2.5 2.5 0 0 1 0 5Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        </span>
+                        {region.name}
+                      </span>
+                    </h3>
+                    <ul
+                      style={{
+                        listStyle: 'none',
+                        margin: 0,
+                        padding: 0,
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '6px 10px'
+                      }}
+                    >
+                      {region.cities.map((city) => (
+                        <li
+                          key={city}
+                          style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.85rem'
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: 'var(--text-tertiary)',
+                              marginRight: '6px'
+                            }}
+                          >
+                            •
+                          </span>
+                          {city === 'Paris' ? (
+                            <Link
+                              href="/distribution-flyer-paris"
+                              style={{ color: 'var(--orange-primary)', textDecoration: 'underline' }}
+                            >
+                              {city}
+                            </Link>
+                          ) : (
+                            city
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
         </div>
         <Footer />
       </div>
